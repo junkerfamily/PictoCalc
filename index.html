@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pictogram Order Calculator</title>
+<style>
+  body {
+    font-family: system-ui, sans-serif;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    background: #fafafa;
+    height: 100vh;
+  }
+
+  /* Grid layout */
+  .grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    padding: 12px;
+    box-sizing: border-box;
+  }
+
+  /* Item card */
+  .item {
+    position: relative;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+    transition: transform 0.15s ease;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .item:active {
+    transform: scale(0.95);
+  }
+
+  /* Item image */
+  .item img {
+    width: 100%;
+    display: block;
+    object-fit: cover;
+    height: 90px;
+  }
+
+  /* Name label */
+  .label {
+    text-align: center;
+    padding: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+  }
+
+  /* Count badge */
+  .count {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: #ff4444;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-size: 13px;
+    min-width: 20px;
+    text-align: center;
+    font-weight: bold;
+  }
+
+  /* Decrement (trash) button */
+  .decrement {
+    position: absolute;
+    top: 34px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #f0f0f0;
+    color: #333;
+    font-size: 12px;
+    line-height: 20px;
+    text-align: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    cursor: pointer;
+    user-select: none;
+    z-index: 2;
+  }
+  .decrement:hover {
+    background: #e5e5e5;
+  }
+
+  /* Footer total bar */
+  .footer {
+    background: white;
+    border-top: 1px solid #ddd;
+    padding: 10px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 18px;
+    font-weight: bold;
+    box-shadow: 0 -2px 6px rgba(0,0,0,0.06);
+  }
+
+  /* Reset button */
+  button {
+    background: #ff4444;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  button:hover {
+    background: #dd2222;
+  }
+</style>
+</head>
+<body>
+
+<!-- Menu Grid -->
+<div class="grid" id="menuGrid"></div>
+
+<!-- Total Footer -->
+<div class="footer">
+  <button id="resetBtn">Reset</button>
+  <div>Total: $<span id="total">0.00</span></div>
+</div>
+
+<!-- Inline fallback config for file:// previews (used if fetch fails) -->
+<script id="menuConfig" type="application/json">
+[
+    { "name": "Hamburger", "price": 5.00, "image": "images/hamburger.png" },
+    { "name": "Hotdog",    "price": 3.50, "image": "images/hotdog.png" },
+    { "name": "Fries",     "price": 2.25, "image": "images/fries.png" },
+    { "name": "Popcorn",   "price": 4.00, "image": "images/popcorn.png" },
+    { "name": "Pizza",     "price": 6.00, "image": "images/pizza.png" },
+    { "name": "Nachos",    "price": 5.50, "image": "images/nachos.png" },
+    { "name": "Soda",      "price": 1.75, "image": "images/soda.png" },
+    { "name": "Water",     "price": 1.00, "image": "images/water.png" },
+    { "name": "Candy",     "price": 2.00, "image": "images/candy.png" },
+    { "name": "Ice Cream", "price": 3.25, "image": "images/icecream.png" },
+    { "name": "Coffee",    "price": 2.50, "image": "images/coffee.png" },
+    { "name": "Tea",       "price": 2.25, "image": "images/tea.png" }
+  ]
+</script>
+
+<script>
+  let items = [];
+  let counts = {};
+
+  async function init() {
+    try {
+      const res = await fetch("config.json");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      items = await res.json();
+    } catch (err) {
+      const inline = document.getElementById("menuConfig");
+      if (inline && inline.textContent && inline.textContent.trim()) {
+        try {
+          items = JSON.parse(inline.textContent);
+        } catch (e) {
+          console.error("Failed to parse inline config JSON", e);
+          items = [];
+        }
+      } else {
+        console.error("Failed to load config.json and no inline config found", err);
+        items = [];
+      }
+    }
+    counts = Object.fromEntries(items.map(i => [i.name, 0]));
+    renderMenu();
+  }
+
+  function renderMenu() {
+    const grid = document.getElementById("menuGrid");
+    grid.innerHTML = "";
+    items.forEach(item => {
+      const div = document.createElement("div");
+      div.className = "item";
+      div.innerHTML = `
+        <img src="${item.image}" alt="${item.name}">
+        ${counts[item.name] > 0 ? `<div class="count">${counts[item.name]}</div><div class="decrement" title="Remove one">🗑️</div>` : ""}
+        <div class="label">${item.name}</div>
+      `;
+      div.addEventListener("click", (event) => {
+        if (event.target.closest(".decrement")) return;
+        counts[item.name]++;
+        updateTotal();
+        renderMenu();
+      });
+      const dec = div.querySelector(".decrement");
+      if (dec) {
+        dec.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (counts[item.name] > 0) {
+            counts[item.name]--;
+            updateTotal();
+            renderMenu();
+          }
+        });
+      }
+      grid.appendChild(div);
+    });
+  }
+
+  function updateTotal() {
+    const total = items.reduce((sum, item) => sum + counts[item.name] * item.price, 0);
+    document.getElementById("total").textContent = total.toFixed(2);
+  }
+
+  document.getElementById("resetBtn").onclick = () => {
+    for (let key in counts) counts[key] = 0;
+    updateTotal();
+    renderMenu();
+  };
+
+  init();
+</script>
+</body>
+</html>
