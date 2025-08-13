@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pictogram Order Calculator</title>
+<link rel="icon" href="/favicon.ico">
+<link rel="icon" type="image/png" href="images/hamburger.png">
 <style>
   body {
     font-family: system-ui, sans-serif;
@@ -18,8 +20,8 @@
   .grid {
     flex: 1;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+    grid-template-columns: repeat(var(--cols, 3), 1fr);
+    gap: var(--gap, 12px);
     padding: 12px;
     box-sizing: border-box;
   }
@@ -52,7 +54,7 @@
   .label {
     text-align: center;
     padding: 6px;
-    font-size: 14px;
+    font-size: var(--label-font, 14px);
     font-weight: 500;
     color: #333;
   }
@@ -75,7 +77,7 @@
   /* Decrement (trash) button */
   .decrement {
     position: absolute;
-    top: 34px;
+    top: var(--dec-top, 34px);
     right: 6px;
     width: 20px;
     height: 20px;
@@ -210,7 +212,66 @@
       }
       grid.appendChild(div);
     });
+    layoutGrid();
   }
+
+  function layoutGrid() {
+    const grid = document.getElementById("menuGrid");
+    if (!grid) return;
+    const n = items.length || 0;
+    const styles = getComputedStyle(grid);
+    const gap = parseFloat(styles.gap) || 12;
+    const paddingLeft = parseFloat(styles.paddingLeft) || 12;
+    const paddingRight = parseFloat(styles.paddingRight) || 12;
+    const paddingTop = parseFloat(styles.paddingTop) || 12;
+    const paddingBottom = parseFloat(styles.paddingBottom) || 12;
+    const footer = document.querySelector(".footer");
+    const footerHeight = footer ? footer.getBoundingClientRect().height : 0;
+    const availableWidth = window.innerWidth - paddingLeft - paddingRight;
+    const availableHeight = window.innerHeight - footerHeight - paddingTop - paddingBottom;
+
+    let bestCols = Math.min(3, n || 3);
+    let bestTileWidth = 0;
+    let bestLabelFont = 14;
+    const maxCols = Math.min(Math.max(1, n), 8);
+    for (let cols = 1; cols <= maxCols; cols++) {
+      const rows = Math.max(1, Math.ceil(n / cols));
+      const tileWidth = (availableWidth - gap * (cols - 1)) / cols;
+      const labelFont = Math.max(11, Math.min(16, Math.round(tileWidth * 0.15)));
+      const labelHeight = labelFont + 12; // font size + vertical padding
+      const tileHeight = tileWidth + labelHeight;
+      const totalHeight = rows * tileHeight + gap * (rows - 1);
+      if (tileWidth > bestTileWidth && totalHeight <= availableHeight) {
+        bestTileWidth = tileWidth;
+        bestCols = cols;
+        bestLabelFont = labelFont;
+      }
+    }
+    // If nothing fit, pick the configuration that yields the largest tiles and then clamp height
+    if (bestTileWidth === 0) {
+      let bestScore = -Infinity;
+      for (let cols = 1; cols <= maxCols; cols++) {
+        const rows = Math.max(1, Math.ceil(n / cols));
+        const tileWidth = (availableWidth - gap * (cols - 1)) / cols;
+        const labelFont = Math.max(11, Math.min(16, Math.round(tileWidth * 0.15)));
+        const labelHeight = labelFont + 12;
+        const tileHeight = tileWidth + labelHeight;
+        const totalHeight = rows * tileHeight + gap * (rows - 1);
+        const score = tileWidth - Math.max(0, totalHeight - availableHeight); // prefer large tiles with less overflow
+        if (score > bestScore) {
+          bestScore = score;
+          bestCols = cols;
+          bestTileWidth = tileWidth;
+          bestLabelFont = labelFont;
+        }
+      }
+    }
+    grid.style.setProperty("--cols", String(bestCols));
+    document.documentElement.style.setProperty("--label-font", `${bestLabelFont}px`);
+    grid.style.setProperty("--dec-top", `${Math.max(24, Math.floor(bestTileWidth * 0.35))}px`);
+  }
+
+  window.addEventListener("resize", layoutGrid);
 
   function updateTotal() {
     const total = items.reduce((sum, item) => sum + counts[item.name] * item.price, 0);
