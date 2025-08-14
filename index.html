@@ -41,6 +41,37 @@
     transform: scale(0.95);
   }
 
+  /* Swipe layers */
+  .item-content {
+    position: relative;
+    z-index: 1;
+    transition: transform 0.15s ease;
+    will-change: transform;
+  }
+  .swipe-bg {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 12px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .swipe-bg .minus {
+    background: #ff4444;
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  .item.dragging .swipe-bg {
+    opacity: 1;
+  }
+
   /* Item image */
   .item img {
     width: 100%;
@@ -74,26 +105,19 @@
     font-weight: bold;
   }
 
-  /* Decrement (trash) button */
-  .decrement {
+  /* Swipe hint (only visible while swiping) */
+  .item.swiping::after {
+    content: "Swipe left to remove";
     position: absolute;
-    top: var(--dec-top, 34px);
-    right: 6px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #f0f0f0;
-    color: #333;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
     font-size: 12px;
-    line-height: 20px;
-    text-align: center;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-    cursor: pointer;
-    user-select: none;
-    z-index: 2;
-  }
-  .decrement:hover {
-    background: #e5e5e5;
+    color: #888;
+    background: rgba(255,255,255,0.85);
+    padding: 4px 6px;
+    border-radius: 6px;
+    pointer-events: none;
   }
 
   /* Footer total bar */
@@ -188,28 +212,68 @@
       const div = document.createElement("div");
       div.className = "item";
       div.innerHTML = `
-        <img src="${item.image}" alt="${item.name}">
-        ${counts[item.name] > 0 ? `<div class="count">${counts[item.name]}</div><div class="decrement" title="Remove one">🗑️</div>` : ""}
-        <div class="label">${item.name}</div>
+        <div class="swipe-bg"><span class="minus">-1</span></div>
+        <div class="item-content">
+          <img src="${item.image}" alt="${item.name}">
+          ${counts[item.name] > 0 ? `<div class=\"count\">${counts[item.name]}</div>` : ""}
+          <div class="label">${item.name}</div>
+        </div>
       `;
+      let suppressClick = false;
+      const content = div.querySelector('.item-content');
       div.addEventListener("click", (event) => {
-        if (event.target.closest(".decrement")) return;
+        if (suppressClick) { suppressClick = false; return; }
         counts[item.name]++;
         updateTotal();
         renderMenu();
       });
-      const dec = div.querySelector(".decrement");
-      if (dec) {
-        dec.addEventListener("click", (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          if (counts[item.name] > 0) {
+
+      // Swipe-to-decrement (left swipe)
+      let startX = null, startY = null, dragging = false, currentDX = 0;
+      div.addEventListener("touchstart", (e) => {
+        const t = e.touches[0];
+        startX = t.clientX; startY = t.clientY;
+        dragging = false; currentDX = 0;
+        if (content) content.style.transition = "none";
+      }, { passive: true });
+      div.addEventListener("touchmove", (e) => {
+        if (startX === null) return;
+        const t = e.touches[0];
+        const dx = t.clientX - startX;
+        const dy = t.clientY - startY;
+        if (!dragging && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
+          dragging = true;
+        }
+        if (dragging) {
+          e.preventDefault();
+          currentDX = dx;
+          const translate = Math.min(0, dx);
+          if (content) content.style.transform = `translateX(${translate}px)`;
+          if (translate < 0) {
+            div.classList.add('dragging');
+          } else {
+            div.classList.remove('dragging');
+          }
+        }
+      }, { passive: false });
+      const endSwipe = () => {
+        if (dragging) {
+          if (currentDX <= -50 && counts[item.name] > 0) {
             counts[item.name]--;
             updateTotal();
+            suppressClick = true;
             renderMenu();
           }
-        });
-      }
+          if (content) {
+            content.style.transition = "transform 0.15s ease";
+            content.style.transform = "translateX(0)";
+          }
+          div.classList.remove('dragging');
+        }
+        startX = startY = null; dragging = false; currentDX = 0;
+      };
+      div.addEventListener("touchend", endSwipe);
+      div.addEventListener("touchcancel", endSwipe);
       grid.appendChild(div);
     });
     layoutGrid();
