@@ -13,7 +13,12 @@
     display: flex;
     flex-direction: column;
     background: #fafafa;
-    height: 100vh;
+    height: 100vh; /* fallback */
+  }
+
+  /* Use dynamic viewport height where supported to keep footer in view on mobile */
+  @supports (height: 100dvh) {
+    body { height: 100dvh; }
   }
 
   /* Grid layout */
@@ -131,6 +136,8 @@
     font-size: 18px;
     font-weight: bold;
     box-shadow: 0 -2px 6px rgba(0,0,0,0.06);
+    position: sticky;
+    bottom: 0;
   }
 
   /* Reset button */
