@@ -235,12 +235,12 @@
         renderMenu();
       });
 
-      // Swipe-to-decrement (left swipe)
-      let startX = null, startY = null, dragging = false, currentDX = 0;
+      // Swipe-to-decrement (left or down swipe)
+      let startX = null, startY = null, dragging = false, currentDX = 0, currentDY = 0, dragAxis = null;
       div.addEventListener("touchstart", (e) => {
         const t = e.touches[0];
         startX = t.clientX; startY = t.clientY;
-        dragging = false; currentDX = 0;
+        dragging = false; currentDX = 0; currentDY = 0; dragAxis = null;
         if (content) content.style.transition = "none";
       }, { passive: true });
       div.addEventListener("touchmove", (e) => {
@@ -248,24 +248,33 @@
         const t = e.touches[0];
         const dx = t.clientX - startX;
         const dy = t.clientY - startY;
-        if (!dragging && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
-          dragging = true;
+        if (!dragging) {
+          if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
+            dragging = true; dragAxis = 'x';
+          } else if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) {
+            dragging = true; dragAxis = 'y';
+          }
         }
-        if (dragging) {
+        if (dragging && dragAxis) {
           e.preventDefault();
           currentDX = dx;
-          const translate = Math.min(0, dx);
-          if (content) content.style.transform = `translateX(${translate}px)`;
-          if (translate < 0) {
-            div.classList.add('dragging');
-          } else {
-            div.classList.remove('dragging');
+          currentDY = dy;
+          if (dragAxis === 'x') {
+            const translateX = Math.min(0, dx); // only left
+            if (content) content.style.transform = `translateX(${translateX}px)`;
+            div.classList.toggle('dragging', translateX < 0);
+          } else if (dragAxis === 'y') {
+            const translateY = Math.max(0, dy); // only down
+            if (content) content.style.transform = `translateY(${translateY}px)`;
+            div.classList.toggle('dragging', translateY > 0);
           }
         }
       }, { passive: false });
       const endSwipe = () => {
         if (dragging) {
-          if (currentDX <= -50 && counts[item.name] > 0) {
+          const leftSwipe = currentDX <= -50;
+          const downSwipe = currentDY >= 50;
+          if ((leftSwipe || downSwipe) && counts[item.name] > 0) {
             counts[item.name]--;
             updateTotal();
             suppressClick = true;
@@ -273,11 +282,11 @@
           }
           if (content) {
             content.style.transition = "transform 0.15s ease";
-            content.style.transform = "translateX(0)";
+            content.style.transform = "translate(0, 0)";
           }
           div.classList.remove('dragging');
         }
-        startX = startY = null; dragging = false; currentDX = 0;
+        startX = startY = null; dragging = false; currentDX = 0; currentDY = 0; dragAxis = null;
       };
       div.addEventListener("touchend", endSwipe);
       div.addEventListener("touchcancel", endSwipe);
