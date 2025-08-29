@@ -197,8 +197,8 @@
     { "name": "Water",     "price": 1.00, "image": "images/water.png" },
     { "name": "Candy",     "price": 2.00, "image": "images/candy.png" },
     { "name": "Ice Cream", "price": 3.25, "image": "images/icecream.png" },
-    { "name": "Coffee",    "price": 2.50, "image": "images/coffee.png" },
-    { "name": "Tea",       "price": 2.25, "image": "images/tea.png" }
+    { "name": "Coffee",    "price": 2.50, "image": "" },
+    { "name": "Tea",       "price": 2.25, "image": "" }
   ]
 </script>
 
@@ -235,14 +235,18 @@
     items.forEach(item => {
       const div = document.createElement("div");
       div.className = "item";
+      const hasImage = !!(item.image && String(item.image).trim().length > 0);
       div.innerHTML = `
         <div class="swipe-bg"><span class="minus">-1</span></div>
         <div class="item-content">
-          <img src="${item.image}" alt="${item.name}">
+          ${hasImage ? `<img src="${item.image}" alt="${item.name}">` : `<div class=\"no-image\">${item.name}</div>`}
           ${counts[item.name] > 0 ? `<div class=\"count\">${counts[item.name]}</div>` : ""}
           <div class="label">${item.name}</div>
         </div>
       `;
+      if (!hasImage) {
+        div.classList.add('no-image-mode');
+      }
       let suppressClick = false;
       const content = div.querySelector('.item-content');
       // Image fallback: replace with large text if image fails to load
@@ -256,6 +260,10 @@
           div.classList.add('no-image-mode');
           requestAnimationFrame(() => fitTextToBox(text));
         });
+      } else {
+        // If we rendered text directly, ensure it fits
+        const text = div.querySelector('.no-image');
+        if (text) requestAnimationFrame(() => fitTextToBox(text));
       }
       div.addEventListener("click", (event) => {
         if (suppressClick) { suppressClick = false; return; }
