@@ -81,16 +81,20 @@
   .no-image {
     width: 100%;
     aspect-ratio: 1 / 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: grid;
+    place-items: center;
     text-align: center;
     font-weight: 900;
     color: #222;
     background: #fff;
-    padding: 6px;
+    padding: 2px;
     box-sizing: border-box;
+    /* Prefer wrapping at word boundaries; allow breaking if needed */
+    white-space: normal;
     word-break: break-word;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+    line-height: 1.0;
   }
   .no-image-mode .label { display: none; }
 
@@ -188,6 +192,7 @@
 <script id="menuConfig" type="application/json">
 [
     { "name": "Brat", "price": 5.00, "image": "images/brat1.jpg" },
+    { "name": "Brat with Krautr", "price": 5.20, "image": "" },
     { "name": "Hotdog",    "price": 3.50, "image": "images/hotdog.png" },
     { "name": "Fries",     "price": 2.25, "image": "images/fries.png" },
     { "name": "Popcorn",   "price": 4.00, "image": "images/popcorn.png" },
@@ -208,14 +213,17 @@
 
   async function init() {
     try {
-      const res = await fetch("config.json");
+      const url = `config.json?ts=${Date.now()}`;
+      const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       items = await res.json();
+      console.info("Loaded menu from config.json");
     } catch (err) {
       const inline = document.getElementById("menuConfig");
       if (inline && inline.textContent && inline.textContent.trim()) {
         try {
           items = JSON.parse(inline.textContent);
+          console.info("Loaded menu from inline fallback JSON");
         } catch (e) {
           console.error("Failed to parse inline config JSON", e);
           items = [];
@@ -335,15 +343,44 @@
   // Fit big bold text into a square box (binary search font size)
   function fitTextToBox(el) {
     if (!el) return;
-    const attempts = 10;
-    let low = 10, high = 300, best = 10;
-    for (let i = 0; i < attempts; i++) {
+    // Use text length to set an initial guess to speed convergence
+    const text = el.textContent || "";
+    const words = text.trim().split(/\s+/).filter(Boolean);
+    const longestWordLen = words.reduce((m,w) => Math.max(m, w.length), 1);
+    const chars = Math.max(1, text.length);
+    const container = el.getBoundingClientRect();
+    const targetArea = container.width * container.height;
+    // heuristic: area per char (bigger for short words)
+    const areaPerChar = Math.max(600, Math.min(8000, targetArea / Math.sqrt(chars)));
+    let guess = Math.sqrt(areaPerChar);
+    // Ensure longest word can fit: estimate max width per character row
+    // Nudge size down based on longest word to encourage wrapping when needed
+    const longestWordFactor = Math.max(1, longestWordLen / 5);
+    // Binary search with better initial bounds
+    let low = 6, high = Math.min(480, Math.max(guess * 2 / longestWordFactor, 48));
+    let best = low;
+    for (let i = 0; i < 14; i++) {
       const mid = (low + high) / 2;
       el.style.fontSize = mid + 'px';
+      // Use scrollHeight/Width vs client to detect overflow
       const fits = el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight;
       if (fits) { best = mid; low = mid; } else { high = mid; }
     }
-    el.style.fontSize = Math.floor(best) + 'px';
+    // small margin, then reduce by 35% as requested
+    el.style.fontSize = Math.max(8, Math.floor((best - 2) * 0.65)) + 'px';
+    // If it still doesn't fit (e.g., single long word), allow per-letter break and refit smaller
+    if (el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight) {
+      el.style.wordBreak = 'break-all';
+      el.style.hyphens = 'manual';
+      let low2 = 6, high2 = parseFloat(getComputedStyle(el).fontSize) || 60, best2 = low2;
+      for (let i = 0; i < 10; i++) {
+        const mid2 = (low2 + high2) / 2;
+        el.style.fontSize = mid2 + 'px';
+        const fits2 = el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight;
+        if (fits2) { best2 = mid2; low2 = mid2; } else { high2 = mid2; }
+      }
+      el.style.fontSize = Math.max(8, Math.floor((best2 - 1) * 0.65)) + 'px';
+    }
   }
 
   function layoutGrid() {

@@ -1,5 +1,6 @@
 [
     { "name": "Brat", "price": 5.00, "image": "images/brat1.jpg" },
+    { "name": "Brat with Krautr", "price": 5.20, "image": "" },      
     { "name": "Hotdog",    "price": 3.50, "image": "images/hotdog.png" },
     { "name": "Fries",     "price": 2.25, "image": "images/fries.png" },
     { "name": "Popcorn",   "price": 4.00, "image": "images/popcorn.png" },
