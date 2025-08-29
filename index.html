@@ -96,6 +96,11 @@
     hyphens: auto;
     line-height: 1.0;
   }
+  .no-image-text {
+    display: inline-block;
+    will-change: transform;
+    transform-origin: center center;
+  }
   .no-image-mode .label { display: none; }
 
   /* Item image */
@@ -175,9 +180,21 @@
   button:hover {
     background: #dd2222;
   }
+
+  /* Error banner */
+  .error {
+    background: #fff3cd;
+    color: #664d03;
+    border-bottom: 1px solid #ffe69c;
+    padding: 8px 12px;
+    font-size: 14px;
+    display: none;
+  }
 </style>
 </head>
 <body>
+
+<div id="error" class="error"></div>
 
 <!-- Menu Grid -->
 <div class="grid" id="menuGrid"></div>
@@ -187,25 +204,6 @@
   <button id="resetBtn">Reset</button>
   <div>Total: $<span id="total">0.00</span></div>
 </div>
-
-<!-- Inline fallback config for file:// previews (used if fetch fails) -->
-<script id="menuConfig" type="application/json">
-[
-    { "name": "Brat", "price": 5.00, "image": "images/brat1.jpg" },
-    { "name": "Brat with Krautr", "price": 5.20, "image": "" },
-    { "name": "Hotdog",    "price": 3.50, "image": "images/hotdog.png" },
-    { "name": "Fries",     "price": 2.25, "image": "images/fries.png" },
-    { "name": "Popcorn",   "price": 4.00, "image": "images/popcorn.png" },
-    { "name": "Pizza",     "price": 6.00, "image": "images/pizza.png" },
-    { "name": "Nachos",    "price": 5.50, "image": "images/nachos.png" },
-    { "name": "Soda",      "price": 1.75, "image": "images/soda.png" },
-    { "name": "Water",     "price": 1.00, "image": "images/water.png" },
-    { "name": "Candy",     "price": 2.00, "image": "images/candy.png" },
-    { "name": "Ice Cream", "price": 3.25, "image": "images/icecream.png" },
-    { "name": "Coffee",    "price": 2.50, "image": "" },
-    { "name": "Tea",       "price": 2.25, "image": "" }
-  ]
-</script>
 
 <script>
   let items = [];
@@ -217,24 +215,27 @@
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       items = await res.json();
-      console.info("Loaded menu from config.json");
+      hideError();
     } catch (err) {
-      const inline = document.getElementById("menuConfig");
-      if (inline && inline.textContent && inline.textContent.trim()) {
-        try {
-          items = JSON.parse(inline.textContent);
-          console.info("Loaded menu from inline fallback JSON");
-        } catch (e) {
-          console.error("Failed to parse inline config JSON", e);
-          items = [];
-        }
-      } else {
-        console.error("Failed to load config.json and no inline config found", err);
-        items = [];
-      }
+      console.error("Failed to load config.json", err);
+      showError("Failed to load config.json. If running locally, start a server: python3 -m http.server");
+      items = [];
     }
     counts = Object.fromEntries(items.map(i => [i.name, 0]));
     renderMenu();
+  }
+
+  function showError(message) {
+    const el = document.getElementById("error");
+    if (!el) return;
+    el.textContent = message;
+    el.style.display = "block";
+  }
+
+  function hideError() {
+    const el = document.getElementById("error");
+    if (!el) return;
+    el.style.display = "none";
   }
 
   function renderMenu() {
@@ -247,7 +248,7 @@
       div.innerHTML = `
         <div class="swipe-bg"><span class="minus">-1</span></div>
         <div class="item-content">
-          ${hasImage ? `<img src="${item.image}" alt="${item.name}">` : `<div class=\"no-image\">${item.name}</div>`}
+          ${hasImage ? `<img src="${item.image}" alt="${item.name}">` : `<div class=\"no-image\"><span class=\"no-image-text\">${item.name}</span></div>`}
           ${counts[item.name] > 0 ? `<div class=\"count\">${counts[item.name]}</div>` : ""}
           <div class="label">${item.name}</div>
         </div>
@@ -263,7 +264,10 @@
         imgEl.addEventListener('error', () => {
           const text = document.createElement('div');
           text.className = 'no-image';
-          text.textContent = item.name;
+          const span = document.createElement('span');
+          span.className = 'no-image-text';
+          span.textContent = item.name;
+          text.appendChild(span);
           imgEl.replaceWith(text);
           div.classList.add('no-image-mode');
           requestAnimationFrame(() => fitTextToBox(text));
