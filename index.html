@@ -246,10 +246,12 @@
       const div = document.createElement("div");
       div.className = "item";
       const hasImage = !!(item.image && String(item.image).trim().length > 0);
+      const textScaleParam = Number.isFinite(Number(item.scale)) ? Number(item.scale) : 1;
+      const textScaleFactor = Math.max(0.1, 1 - 0.1 * (textScaleParam - 1));
       div.innerHTML = `
         <div class="swipe-bg"><span class="minus">-1</span></div>
         <div class="item-content">
-          ${hasImage ? `<img src="${item.image}" alt="${item.name}">` : `<div class=\"no-image\"><span class=\"no-image-text\">${item.name}</span></div>`}
+          ${hasImage ? `<img src="${item.image}" alt="${item.name}">` : `<div class=\"no-image\" data-scale-adjust=\"${textScaleFactor}\"><span class=\"no-image-text\">${item.name}</span></div>`}
           ${counts[item.name] > 0 ? `<div class=\"count\">${counts[item.name]}</div>` : ""}
           <div class="label">${item.name}</div>
         </div>
@@ -265,6 +267,7 @@
         imgEl.addEventListener('error', () => {
           const text = document.createElement('div');
           text.className = 'no-image';
+          text.setAttribute('data-scale-adjust', String(textScaleFactor));
           const span = document.createElement('span');
           span.className = 'no-image-text';
           span.textContent = item.name;
@@ -371,8 +374,11 @@
       const fits = el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight;
       if (fits) { best = mid; low = mid; } else { high = mid; }
     }
-    // small margin, then reduce by 35% as requested
-    el.style.fontSize = Math.max(8, Math.floor((best - 2) * 0.65)) + 'px';
+    // small margin, then base 35% reduction and optional per-item scale factor (1..10 => 100%..10%)
+    const userFactorRaw = parseFloat(el.getAttribute('data-scale-adjust') || '1');
+    const userFactor = Number.isFinite(userFactorRaw) ? userFactorRaw : 1;
+    const baseFactor = 0.65 * userFactor;
+    el.style.fontSize = Math.max(8, Math.floor((best - 2) * baseFactor)) + 'px';
     // If it still doesn't fit (e.g., single long word), allow per-letter break and refit smaller
     if (el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight) {
       el.style.wordBreak = 'break-all';
@@ -384,7 +390,7 @@
         const fits2 = el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight;
         if (fits2) { best2 = mid2; low2 = mid2; } else { high2 = mid2; }
       }
-      el.style.fontSize = Math.max(8, Math.floor((best2 - 1) * 0.65)) + 'px';
+      el.style.fontSize = Math.max(8, Math.floor((best2 - 1) * baseFactor)) + 'px';
     }
   }
 
