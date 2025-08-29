@@ -77,6 +77,23 @@
     opacity: 1;
   }
 
+  /* Fallback when image is missing: big bold text fits square */
+  .no-image {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-weight: 900;
+    color: #222;
+    background: #fff;
+    padding: 6px;
+    box-sizing: border-box;
+    word-break: break-word;
+  }
+  .no-image-mode .label { display: none; }
+
   /* Item image */
   .item img {
     width: 100%;
@@ -228,6 +245,18 @@
       `;
       let suppressClick = false;
       const content = div.querySelector('.item-content');
+      // Image fallback: replace with large text if image fails to load
+      const imgEl = div.querySelector('img');
+      if (imgEl) {
+        imgEl.addEventListener('error', () => {
+          const text = document.createElement('div');
+          text.className = 'no-image';
+          text.textContent = item.name;
+          imgEl.replaceWith(text);
+          div.classList.add('no-image-mode');
+          requestAnimationFrame(() => fitTextToBox(text));
+        });
+      }
       div.addEventListener("click", (event) => {
         if (suppressClick) { suppressClick = false; return; }
         counts[item.name]++;
@@ -295,6 +324,20 @@
     layoutGrid();
   }
 
+  // Fit big bold text into a square box (binary search font size)
+  function fitTextToBox(el) {
+    if (!el) return;
+    const attempts = 10;
+    let low = 10, high = 300, best = 10;
+    for (let i = 0; i < attempts; i++) {
+      const mid = (low + high) / 2;
+      el.style.fontSize = mid + 'px';
+      const fits = el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight;
+      if (fits) { best = mid; low = mid; } else { high = mid; }
+    }
+    el.style.fontSize = Math.floor(best) + 'px';
+  }
+
   function layoutGrid() {
     const grid = document.getElementById("menuGrid");
     if (!grid) return;
@@ -349,6 +392,8 @@
     grid.style.setProperty("--cols", String(bestCols));
     document.documentElement.style.setProperty("--label-font", `${bestLabelFont}px`);
     grid.style.setProperty("--dec-top", `${Math.max(24, Math.floor(bestTileWidth * 0.35))}px`);
+    // Refit any fallback text boxes after layout changes
+    grid.querySelectorAll('.no-image').forEach((el) => fitTextToBox(el));
   }
 
   window.addEventListener("resize", layoutGrid);
