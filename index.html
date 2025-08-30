@@ -258,6 +258,16 @@
       `;
       if (!hasImage) {
         div.classList.add('no-image-mode');
+        // support manual line breaks ("\n") in names when no image
+        const span = div.querySelector('.no-image-text');
+        if (span) {
+          const safe = (item.name || "")
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\\n/g, '<br>');
+          span.innerHTML = safe;
+        }
       }
       let suppressClick = false;
       const content = div.querySelector('.item-content');
@@ -270,7 +280,12 @@
           text.setAttribute('data-scale-adjust', String(textScaleFactor));
           const span = document.createElement('span');
           span.className = 'no-image-text';
-          span.textContent = item.name;
+          const safe = (item.name || "")
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\\n/g, '<br>');
+          span.innerHTML = safe;
           text.appendChild(span);
           imgEl.replaceWith(text);
           div.classList.add('no-image-mode');
@@ -348,50 +363,27 @@
     layoutGrid();
   }
 
-  // Fit big bold text into a square box (binary search font size)
+  // Fit big bold text into a square box using transform scale only
   function fitTextToBox(el) {
     if (!el) return;
-    // Use text length to set an initial guess to speed convergence
-    const text = el.textContent || "";
-    const words = text.trim().split(/\s+/).filter(Boolean);
-    const longestWordLen = words.reduce((m,w) => Math.max(m, w.length), 1);
-    const chars = Math.max(1, text.length);
-    const container = el.getBoundingClientRect();
-    const targetArea = container.width * container.height;
-    // heuristic: area per char (bigger for short words)
-    const areaPerChar = Math.max(600, Math.min(8000, targetArea / Math.sqrt(chars)));
-    let guess = Math.sqrt(areaPerChar);
-    // Ensure longest word can fit: estimate max width per character row
-    // Nudge size down based on longest word to encourage wrapping when needed
-    const longestWordFactor = Math.max(1, longestWordLen / 5);
-    // Binary search with better initial bounds
-    let low = 6, high = Math.min(480, Math.max(guess * 2 / longestWordFactor, 48));
-    let best = low;
-    for (let i = 0; i < 14; i++) {
-      const mid = (low + high) / 2;
-      el.style.fontSize = mid + 'px';
-      // Use scrollHeight/Width vs client to detect overflow
-      const fits = el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight;
-      if (fits) { best = mid; low = mid; } else { high = mid; }
-    }
-    // small margin, then base 35% reduction and optional per-item scale factor (1..10 => 100%..10%)
+    const span = el.querySelector('.no-image-text');
+    if (!span) return;
+    // Reset baseline so measurement is consistent
+    span.style.transform = 'scale(1)';
+    span.style.fontSize = '100px';
+    span.style.width = '100%';
+    // Base margin (35%) and per-item scale factor (1..10 => 100%..10%)
     const userFactorRaw = parseFloat(el.getAttribute('data-scale-adjust') || '1');
     const userFactor = Number.isFinite(userFactorRaw) ? userFactorRaw : 1;
-    const baseFactor = 0.65 * userFactor;
-    el.style.fontSize = Math.max(8, Math.floor((best - 2) * baseFactor)) + 'px';
-    // If it still doesn't fit (e.g., single long word), allow per-letter break and refit smaller
-    if (el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight) {
-      el.style.wordBreak = 'break-all';
-      el.style.hyphens = 'manual';
-      let low2 = 6, high2 = parseFloat(getComputedStyle(el).fontSize) || 60, best2 = low2;
-      for (let i = 0; i < 10; i++) {
-        const mid2 = (low2 + high2) / 2;
-        el.style.fontSize = mid2 + 'px';
-        const fits2 = el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight;
-        if (fits2) { best2 = mid2; low2 = mid2; } else { high2 = mid2; }
-      }
-      el.style.fontSize = Math.max(8, Math.floor((best2 - 1) * baseFactor)) + 'px';
-    }
+    const factor = 0.65 * userFactor;
+    // Measure available vs content size
+    const cw = el.clientWidth || 1;
+    const ch = el.clientHeight || 1;
+    const rect = span.getBoundingClientRect();
+    const sw = rect.width || 1;
+    const sh = rect.height || 1;
+    const scale = Math.max(0.1, Math.min(1, factor * Math.min(cw / sw, ch / sh)));
+    span.style.transform = `scale(${scale})`;
   }
 
   function layoutGrid() {
