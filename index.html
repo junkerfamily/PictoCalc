@@ -117,7 +117,7 @@
     min-height: unset !important;   /* Let aspect-ratio control height */
     max-height: none !important;    /* Remove any height constraints */
     height: auto !important;
-    padding: 4px 4px 30px 4px !important;  /* Minimal padding for more text space */
+    padding: 4px 4px 12px 4px !important;  /* Reduce bottom padding to avoid clipping last line */
     justify-content: center !important;     /* Center text like image items */
     overflow: hidden !important;    /* Prevent overflow for uniform appearance */
   }
@@ -246,7 +246,7 @@
   /* Count badge for text-only items - use bottom space to prevent overlap */
   .no-image-mode .count {
     top: auto;
-    bottom: 2px;  /* Move much closer to bottom edge */
+    bottom: 0;  /* Sit flush to the bottom edge for maximum text room */
     right: 8px;
     background: #ff4444;
     box-shadow: 0 3px 6px rgba(0,0,0,0.3);
