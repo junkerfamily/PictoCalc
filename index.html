@@ -98,7 +98,7 @@
     font-weight: 900;
     color: #222;
     background: #fff;
-    padding: 4px 4px 30px 4px;  /* Minimal padding for more text space */
+    padding: 4px 4px 18px 4px;  /* Reduced bottom padding for more text space */
     box-sizing: border-box;
     /* Prefer wrapping at word boundaries; allow breaking if needed */
     white-space: normal;
@@ -246,7 +246,7 @@
   /* Count badge for text-only items - use bottom space to prevent overlap */
   .no-image-mode .count {
     top: auto;
-    bottom: 8px;
+    bottom: 2px;  /* Move much closer to bottom edge */
     right: 8px;
     background: #ff4444;
     box-shadow: 0 3px 6px rgba(0,0,0,0.3);
@@ -512,7 +512,7 @@
         if (suppressClick) { suppressClick = false; return; }
         counts[item.name]++;
         updateTotal();
-        renderMenu();
+        updateItemCount(item.name);  // Efficient update instead of full re-render
       });
 
       // Swipe-to-decrement (left or down swipe)
@@ -558,7 +558,7 @@
             counts[item.name]--;
             updateTotal();
             suppressClick = true;
-            renderMenu();
+            updateItemCount(item.name);  // Efficient update instead of full re-render
           }
           if (content) {
             content.style.transition = "transform 0.15s ease";
@@ -728,6 +728,38 @@
   function updateTotal() {
     const total = items.reduce((sum, item) => sum + counts[item.name] * item.price, 0);
     document.getElementById("total").textContent = total.toFixed(2);
+  }
+
+  // Efficient function to update just the count badge for a specific item
+  function updateItemCount(itemName) {
+    const grid = document.getElementById("menuGrid");
+    const itemDivs = grid.querySelectorAll('.item');
+    
+    // Find the div for this specific item
+    for (let itemDiv of itemDivs) {
+      const label = itemDiv.querySelector('.label');
+      if (label && label.textContent === itemName) {
+        const existingCount = itemDiv.querySelector('.count');
+        const currentCount = counts[itemName];
+        
+        if (currentCount > 0) {
+          if (existingCount) {
+            // Update existing count badge
+            existingCount.textContent = currentCount;
+          } else {
+            // Create new count badge
+            const countBadge = document.createElement('div');
+            countBadge.className = 'count';
+            countBadge.textContent = currentCount;
+            itemDiv.querySelector('.item-content').appendChild(countBadge);
+          }
+        } else if (existingCount) {
+          // Remove count badge if count is 0
+          existingCount.remove();
+        }
+        break;
+      }
+    }
   }
 
   document.getElementById("resetBtn").onclick = () => {
