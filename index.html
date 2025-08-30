@@ -21,17 +21,18 @@
     body { height: 100dvh; }
   }
 
-  /* Grid layout */
+  /* Grid layout - COMPACT for mobile */
   .grid {
     flex: 1;
     display: grid;
     grid-template-columns: repeat(var(--cols, 3), 1fr);
-    gap: var(--gap, 12px);
-    padding: 12px;
+    gap: var(--gap, 8px);  /* Smaller gap for tighter layout */
+    padding: 8px;  /* Less padding for more content space */
     box-sizing: border-box;
     /* Ensure consistent cell sizing */
-    grid-auto-rows: 1fr;
-    align-items: start;
+    grid-auto-rows: minmax(auto, max-content);  /* Prevent excessive row height */
+    align-items: stretch;  /* Stretch items to fill available space */
+    align-content: start;  /* Pack rows tightly at the top */
   }
 
   /* Item card */
@@ -84,11 +85,11 @@
     opacity: 1;
   }
 
-  /* Fallback when image is missing: big bold text fits square */
+  /* Fallback when image is missing: UNIFORM SQUARE SIZE */
   .no-image {
     width: 100%;
-    min-height: 150px;  /* Ensure adequate height for text */
-    /* EXPERIMENTAL: Use flexbox instead of grid for better control */
+    aspect-ratio: 1 / 1;  /* Force square to match image items */
+    /* Use flexbox for centering */
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -97,28 +98,28 @@
     font-weight: 900;
     color: #222;
     background: #fff;
-    padding: 15px;
+    padding: 4px 4px 30px 4px;  /* Minimal padding for more text space */
     box-sizing: border-box;
     /* Prefer wrapping at word boundaries; allow breaking if needed */
     white-space: normal;
     word-break: break-word;
     overflow-wrap: anywhere;
     hyphens: auto;
-    line-height: 1.0;
-    /* Ensure consistent cell dimensions regardless of text scaling */
-    overflow: visible;
+    line-height: 0.9;  /* Tighter line spacing for better space usage */
+    /* Ensure consistent cell dimensions */
+    overflow: hidden;
     position: relative;
   }
   
-  /* Special handling for multi-line text containers */
+  /* Special handling for multi-line text containers - UNIFORM SIZE */
   .no-image.multi-line {
-    aspect-ratio: unset !important;
-    min-height: 280px !important;  /* Much more height for multi-line text */
-    max-height: none !important;   /* Remove any height constraints */
+    aspect-ratio: 1 / 1 !important;  /* Force square like image items */
+    min-height: unset !important;   /* Let aspect-ratio control height */
+    max-height: none !important;    /* Remove any height constraints */
     height: auto !important;
-    padding: 30px 12px 50px 12px !important;  /* Extra bottom padding for count badge */
-    justify-content: flex-start !important;  /* Align to top instead of center */
-    overflow: visible !important;  /* Make sure nothing gets clipped */
+    padding: 4px 4px 30px 4px !important;  /* Minimal padding for more text space */
+    justify-content: center !important;     /* Center text like image items */
+    overflow: hidden !important;    /* Prevent overflow for uniform appearance */
   }
   
   /* Production: Clean containers without debug borders */
@@ -137,17 +138,17 @@
     zoom: 1 !important;
   }
   
-  /* Font-size scaling for different scale levels */
-  .no-image[data-scale-level="1"] .no-image-text { font-size: 4rem; }
-  .no-image[data-scale-level="2"] .no-image-text { font-size: 3.6rem; }
-  .no-image[data-scale-level="3"] .no-image-text { font-size: 3.2rem; }
-  .no-image[data-scale-level="4"] .no-image-text { font-size: 2.8rem; }
-  .no-image[data-scale-level="5"] .no-image-text { font-size: 2.4rem; }
-  .no-image[data-scale-level="6"] .no-image-text { font-size: 2.0rem; }
-  .no-image[data-scale-level="7"] .no-image-text { font-size: 1.6rem; }
-  .no-image[data-scale-level="8"] .no-image-text { font-size: 1.2rem; }
-  .no-image[data-scale-level="9"] .no-image-text { font-size: 0.8rem; }
-  .no-image[data-scale-level="10"] .no-image-text { font-size: 0.4rem; }
+  /* Font-size scaling for different scale levels - LARGER for better space usage */
+  .no-image[data-scale-level="1"] .no-image-text { font-size: 5.5rem; }
+  .no-image[data-scale-level="2"] .no-image-text { font-size: 5.0rem; }
+  .no-image[data-scale-level="3"] .no-image-text { font-size: 4.5rem; }
+  .no-image[data-scale-level="4"] .no-image-text { font-size: 4.0rem; }
+  .no-image[data-scale-level="5"] .no-image-text { font-size: 3.5rem; }
+  .no-image[data-scale-level="6"] .no-image-text { font-size: 3.0rem; }
+  .no-image[data-scale-level="7"] .no-image-text { font-size: 2.5rem; }
+  .no-image[data-scale-level="8"] .no-image-text { font-size: 2.0rem; }
+  .no-image[data-scale-level="9"] .no-image-text { font-size: 1.5rem; }
+  .no-image[data-scale-level="10"] .no-image-text { font-size: 1.0rem; }
   
   /* Color options for text */
   .no-image[data-color="red"] .no-image-text { color: #dc2626; }
@@ -202,10 +203,11 @@
   }
   .no-image-mode .label { display: none; }
   
-  /* Padding for text-only items - reserve bottom space for count badge */
+  /* Padding for text-only items - UNIFORM with image items */
   .no-image-mode .no-image {
-    padding: 15px 12px 45px 12px !important;  /* Extra bottom padding for count badge */
-    min-height: 120px !important;  /* Ensure minimum height for single-line text */
+    aspect-ratio: 1 / 1 !important;  /* Force square to match image items */
+    padding: 4px 4px 30px 4px !important;  /* Minimal padding for more text space */
+    min-height: unset !important;  /* Let aspect-ratio control height */
   }
 
   /* Item image */
@@ -687,7 +689,7 @@
       const tileWidth = (availableWidth - gap * (cols - 1)) / cols;
       const labelFont = Math.max(11, Math.min(16, Math.round(tileWidth * 0.15)));
       const labelHeight = labelFont + 12; // font size + vertical padding
-      const tileHeight = tileWidth + labelHeight;
+      const tileHeight = tileWidth + 20; // Fixed compact height for mobile
       const totalHeight = rows * tileHeight + gap * (rows - 1);
       if (tileWidth > bestTileWidth && totalHeight <= availableHeight) {
         bestTileWidth = tileWidth;
@@ -703,7 +705,7 @@
         const tileWidth = (availableWidth - gap * (cols - 1)) / cols;
         const labelFont = Math.max(11, Math.min(16, Math.round(tileWidth * 0.15)));
         const labelHeight = labelFont + 12;
-        const tileHeight = tileWidth + labelHeight;
+        const tileHeight = tileWidth + 20; // Fixed compact height for mobile
         const totalHeight = rows * tileHeight + gap * (rows - 1);
         const score = tileWidth - Math.max(0, totalHeight - availableHeight); // prefer large tiles with less overflow
         if (score > bestScore) {
