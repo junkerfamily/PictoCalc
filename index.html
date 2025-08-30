@@ -87,7 +87,7 @@
   /* Fallback when image is missing: big bold text fits square */
   .no-image {
     width: 100%;
-    aspect-ratio: 1 / 1;
+    min-height: 150px;  /* Ensure adequate height for text */
     /* EXPERIMENTAL: Use flexbox instead of grid for better control */
     display: flex;
     flex-direction: column;
@@ -97,7 +97,7 @@
     font-weight: 900;
     color: #222;
     background: #fff;
-    padding: 8px;
+    padding: 15px;
     box-sizing: border-box;
     /* Prefer wrapping at word boundaries; allow breaking if needed */
     white-space: normal;
@@ -113,10 +113,10 @@
   /* Special handling for multi-line text containers */
   .no-image.multi-line {
     aspect-ratio: unset !important;
-    min-height: 200px !important;  /* Ensure enough height for multi-line text */
+    min-height: 280px !important;  /* Much more height for multi-line text */
     max-height: none !important;   /* Remove any height constraints */
     height: auto !important;
-    padding: 20px 8px !important;  /* Extra padding for multi-line text */
+    padding: 30px 12px 50px 12px !important;  /* Extra bottom padding for count badge */
     justify-content: flex-start !important;  /* Align to top instead of center */
     overflow: visible !important;  /* Make sure nothing gets clipped */
   }
@@ -201,6 +201,12 @@
     overflow-wrap: normal !important;
   }
   .no-image-mode .label { display: none; }
+  
+  /* Padding for text-only items - reserve bottom space for count badge */
+  .no-image-mode .no-image {
+    padding: 15px 12px 45px 12px !important;  /* Extra bottom padding for count badge */
+    min-height: 120px !important;  /* Ensure minimum height for single-line text */
+  }
 
   /* Item image */
   .item img {
@@ -233,6 +239,18 @@
     min-width: 20px;
     text-align: center;
     font-weight: bold;
+  }
+  
+  /* Count badge for text-only items - use bottom space to prevent overlap */
+  .no-image-mode .count {
+    top: auto;
+    bottom: 8px;
+    right: 8px;
+    background: #ff4444;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+    border: 2px solid white;  /* White border for better visibility */
+    font-size: 14px;  /* Slightly larger for better visibility in bottom position */
+    padding: 5px 9px;  /* More padding for better appearance */
   }
 
   /* Swipe hint (only visible while swiping) */

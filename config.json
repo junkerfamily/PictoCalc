@@ -10,7 +10,7 @@
     { "name": "Water",     "price": 1.00, "image": "images/water.png", "scale": 1 },
     { "name": "Candy",     "price": 2.00, "image": "images/candy.png", "scale": 1 },
     { "name": "Ice Cream", "price": 3.25, "image": "images/icecream.png", "scale": 1 },
-    { "name": "Coffee",    "price": 2.50, "image": "", "scale": 1, "color": "blue" },
-    { "name": "Tea",       "price": 2.25, "image": "", "scale": 1, "color": "green" }
+    { "name": "Coffee",    "price": 2.50, "image": "", "scale": 7, "color": "blue" },
+    { "name": "Tea",       "price": 2.25, "image": "", "scale": 4, "color": "green" }
   ]
   
