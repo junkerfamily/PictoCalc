@@ -1,10 +1,11 @@
 [
   { "name": "Brat", "price": 5.00, "image": "images/brat1.jpg", "scale": 3 },
-  { "name": "Brat with Kraut", "price": 5.20, "image": "", "scale": 7, "color": "red" },
+  { "name": "Brat with Kraut ", "price": 5.20, "image": "", "scale": 7, "color": "red" },
   { "name": "Pulled-Pork with Kraut", "price": 7.50, "image": "images/pulled-pork-kraut.jpg", "scale": 6 },
   { "name": "Side Kraut", "price": 2.50, "image": "images/side-kraut.jpg", "scale": 1 },
   { "name": "Apple Crisp", "price": 4.00, "image": "images/apple-crisp.jpg", "scale": 1 },
   { "name": "Potato Salad", "price": 3.75, "image": "images/potato-salad.jpg", "scale": 1 },
   { "name": "Pretzel", "price": 3.00, "image": "images/pretzel.jpg", "scale": 1 },
-  { "name": "Pretzel with Cheese", "price": 4.50, "image": "images/pretzel-cheese.jpg", "scale": 2 }
+  { "name": "Pretzel with Cheese", "price": 4.50, "image": "images/pretzel-cheese.jpg", "scale": 2 },
+  { "name": "Version", "price": 1.01, "image": "", "scale": 7, "color": "black" }
 ]
