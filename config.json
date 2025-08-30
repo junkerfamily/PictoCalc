@@ -1,6 +1,6 @@
 [
-    { "name": "Brat", "price": 5.00, "image": "images/brat1.jpg", "scale": 9 },
-    { "name": "Brat\nwith\nKraut", "price": 5.20, "image": "", "scale": 1 },      
+    { "name": "Brat", "price": 5.00, "image": "images/brat1.jpg", "scale": 3 },
+    { "name": "Brat with Kraut", "price": 5.20, "image": "", "scale": 7, "color": "red" },      
     { "name": "Hotdog",    "price": 3.50, "image": "images/hotdog.png", "scale": 1 },
     { "name": "Fries",     "price": 2.25, "image": "images/fries.png", "scale": 1 },
     { "name": "Popcorn",   "price": 4.00, "image": "images/popcorn.png", "scale": 1 },
@@ -10,7 +10,7 @@
     { "name": "Water",     "price": 1.00, "image": "images/water.png", "scale": 1 },
     { "name": "Candy",     "price": 2.00, "image": "images/candy.png", "scale": 1 },
     { "name": "Ice Cream", "price": 3.25, "image": "images/icecream.png", "scale": 1 },
-    { "name": "Coffee",    "price": 2.50, "image": "", "scale": 1 },
-    { "name": "Tea",       "price": 2.25, "image": "", "scale": 1 }
+    { "name": "Coffee",    "price": 2.50, "image": "", "scale": 1, "color": "blue" },
+    { "name": "Tea",       "price": 2.25, "image": "", "scale": 1, "color": "green" }
   ]
   

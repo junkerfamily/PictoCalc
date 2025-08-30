@@ -29,6 +29,9 @@
     gap: var(--gap, 12px);
     padding: 12px;
     box-sizing: border-box;
+    /* Ensure consistent cell sizing */
+    grid-auto-rows: 1fr;
+    align-items: start;
   }
 
   /* Item card */
@@ -41,6 +44,10 @@
     transition: transform 0.15s ease;
     cursor: pointer;
     touch-action: manipulation;
+    /* Ensure consistent cell dimensions */
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
   .item:active {
     transform: scale(0.95);
@@ -81,13 +88,16 @@
   .no-image {
     width: 100%;
     aspect-ratio: 1 / 1;
-    display: grid;
-    place-items: center;
+    /* EXPERIMENTAL: Use flexbox instead of grid for better control */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     text-align: center;
     font-weight: 900;
     color: #222;
     background: #fff;
-    padding: 2px;
+    padding: 8px;
     box-sizing: border-box;
     /* Prefer wrapping at word boundaries; allow breaking if needed */
     white-space: normal;
@@ -95,12 +105,100 @@
     overflow-wrap: anywhere;
     hyphens: auto;
     line-height: 1.0;
+    /* Ensure consistent cell dimensions regardless of text scaling */
+    overflow: visible;
+    position: relative;
   }
+  
+  /* Special handling for multi-line text containers */
+  .no-image.multi-line {
+    aspect-ratio: unset !important;
+    min-height: 200px !important;  /* Ensure enough height for multi-line text */
+    max-height: none !important;   /* Remove any height constraints */
+    height: auto !important;
+    padding: 20px 8px !important;  /* Extra padding for multi-line text */
+    justify-content: flex-start !important;  /* Align to top instead of center */
+    overflow: visible !important;  /* Make sure nothing gets clipped */
+  }
+  
+  /* Production: Clean containers without debug borders */
+  .no-image {
+    /* RESET: Remove any transforms that might be applied to containers */
+    transform: none !important;
+    scale: none !important;
+    zoom: 1 !important;
+  }
+  
+  /* Production: Clean text spans without debug borders */
+  .no-image-text {
+    /* RESET: Remove any transforms that might be applied */
+    transform: none !important;
+    scale: none !important;
+    zoom: 1 !important;
+  }
+  
+  /* Font-size scaling for different scale levels */
+  .no-image[data-scale-level="1"] .no-image-text { font-size: 4rem; }
+  .no-image[data-scale-level="2"] .no-image-text { font-size: 3.6rem; }
+  .no-image[data-scale-level="3"] .no-image-text { font-size: 3.2rem; }
+  .no-image[data-scale-level="4"] .no-image-text { font-size: 2.8rem; }
+  .no-image[data-scale-level="5"] .no-image-text { font-size: 2.4rem; }
+  .no-image[data-scale-level="6"] .no-image-text { font-size: 2.0rem; }
+  .no-image[data-scale-level="7"] .no-image-text { font-size: 1.6rem; }
+  .no-image[data-scale-level="8"] .no-image-text { font-size: 1.2rem; }
+  .no-image[data-scale-level="9"] .no-image-text { font-size: 0.8rem; }
+  .no-image[data-scale-level="10"] .no-image-text { font-size: 0.4rem; }
+  
+  /* Color options for text */
+  .no-image[data-color="red"] .no-image-text { color: #dc2626; }
+  .no-image[data-color="blue"] .no-image-text { color: #2563eb; }
+  .no-image[data-color="green"] .no-image-text { color: #16a34a; }
+  .no-image[data-color="black"] .no-image-text { color: #000000; }
+  .no-image[data-color="orange"] .no-image-text { color: #ea580c; }
+  .no-image[data-color="pink"] .no-image-text { color: #db2777; }
+  .no-image[data-color="purple"] .no-image-text { color: #9333ea; }
+  .no-image[data-color="gold"] .no-image-text { color: #ca8a04; }
+  
+  /* Debug: show scale factor visually - comment out for production */
+  /*
+  .no-image[data-scale-adjust]::before {
+    content: "scale " attr(data-scale-adjust);
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    background: rgba(255, 0, 0, 0.8);
+    color: white;
+    font-size: 10px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: bold;
+  }
+  */
   .no-image-text {
     display: block;
     width: 100%;
     will-change: transform;
     transform-origin: center center;
+    /* Ensure text doesn't affect cell dimensions when scaled */
+    max-width: 100%;
+    max-height: 100%;
+    overflow: hidden;
+  }
+  
+  /* Special handling for text with explicit newlines */
+  .no-image-text[style*="white-space: pre-line"] {
+    word-break: normal !important;
+    white-space: pre-line !important;
+    overflow-wrap: normal !important;
+    hyphens: none !important;
+    line-height: 0.8 !important;
+    transform-origin: center center !important;
+  }
+  
+  /* Force proper line breaks for items with newlines */
+  .no-image-text {
+    word-break: normal !important;
+    overflow-wrap: normal !important;
   }
   .no-image-mode .label { display: none; }
 
@@ -248,10 +346,11 @@
       const hasImage = !!(item.image && String(item.image).trim().length > 0);
       const textScaleParam = Number.isFinite(Number(item.scale)) ? Number(item.scale) : 1;
       const textScaleFactor = Math.max(0.1, 1 - 0.1 * (textScaleParam - 1));
+      console.log(`Item: ${item.name}, HasImage: ${hasImage}, Scale: ${textScaleParam}, Factor: ${textScaleFactor}`);
       div.innerHTML = `
         <div class="swipe-bg"><span class="minus">-1</span></div>
         <div class="item-content">
-          ${hasImage ? `<img src="${item.image}" alt="${item.name}">` : `<div class=\"no-image\" data-scale-adjust=\"${textScaleFactor}\"><span class=\"no-image-text\">${item.name}</span></div>`}
+          ${hasImage ? `<img src="${item.image}" alt="${item.name}">` : `<div class=\"no-image\" data-scale-adjust=\"${textScaleFactor}\" data-scale-level=\"${textScaleParam}\" data-color=\"${item.color || 'black'}\"><span class=\"no-image-text\">${item.name}</span></div>`}
           ${counts[item.name] > 0 ? `<div class=\"count\">${counts[item.name]}</div>` : ""}
           <div class="label">${item.name}</div>
         </div>
@@ -261,12 +360,62 @@
         // support manual line breaks ("\n") in names when no image
         const span = div.querySelector('.no-image-text');
         if (span) {
-          const safe = (item.name || "")
+          console.log(`Raw item name: "${item.name}"`);
+          console.log(`Raw item name length: ${item.name.length}`);
+          console.log(`Raw item name char codes: ${Array.from(item.name).map(c => c.charCodeAt(0))}`);
+          
+          // Handle newlines more directly
+          let processedText = item.name || "";
+          if (processedText.includes('\\n')) {
+            // Replace literal \n with actual newlines, then with <br> tags
+            processedText = processedText.replace(/\\n/g, '\n').replace(/\n/g, '<br>');
+            console.log(`Found \\n, processed to: "${processedText}"`);
+          }
+          
+          const safe = processedText
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/\\n/g, '<br>');
+            .replace(/>/g, '&gt;');
+          
+          console.log(`Final HTML: "${safe}"`);
           span.innerHTML = safe;
+          
+          // Force proper line breaks for items with explicit newlines
+          if (item.name && item.name.includes('\\n')) {
+            console.log(`Found \\n in name, applying special styling to: "${item.name}"`);
+            span.style.whiteSpace = 'pre-line';
+            span.style.wordBreak = 'normal';
+            span.style.overflowWrap = 'normal';
+            span.style.hyphens = 'none';
+            span.style.lineHeight = '0.8';  // Very tight line spacing for multi-line text
+            
+            // Add multi-line class to the container
+            const noImageDiv = div.querySelector('.no-image');
+            if (noImageDiv) {
+              noImageDiv.classList.add('multi-line');
+              console.log(`Added multi-line class to container for: "${item.name}"`);
+            } else {
+              console.log(`ERROR: Could not find .no-image div for: "${item.name}"`);
+            }
+          } else {
+            console.log(`No \\n found in name: "${item.name}"`);
+            // Check for actual newlines (not just literal \n)
+            if (item.name && item.name.includes('\n')) {
+              console.log('FOUND ACTUAL NEWLINES! Applying multi-line styling');
+              span.style.whiteSpace = 'pre-line';
+              span.style.wordBreak = 'normal';
+              span.style.overflowWrap = 'normal';
+              span.style.hyphens = 'none';
+              span.style.lineHeight = '0.8';
+              
+              // Add multi-line class to the container
+              const noImageDiv = div.querySelector('.no-image');
+              if (noImageDiv) {
+                noImageDiv.classList.add('multi-line');
+                console.log(`Added multi-line class for ACTUAL newlines: "${item.name}"`);
+              }
+            }
+          }
         }
       }
       let suppressClick = false;
@@ -278,23 +427,66 @@
           const text = document.createElement('div');
           text.className = 'no-image';
           text.setAttribute('data-scale-adjust', String(textScaleFactor));
+          text.setAttribute('data-color', item.color || 'black');
           const span = document.createElement('span');
           span.className = 'no-image-text';
-          const safe = (item.name || "")
+          // Handle newlines more directly
+          let processedText = item.name || "";
+          if (processedText.includes('\\n')) {
+            // Replace literal \n with actual newlines, then with <br> tags
+            processedText = processedText.replace(/\\n/g, '\n').replace(/\n/g, '<br>');
+          }
+          
+          const safe = processedText
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/\\n/g, '<br>');
+            .replace(/>/g, '&gt;');
+          
           span.innerHTML = safe;
+          
+          // Force proper line breaks for items with explicit newlines
+          if (item.name && item.name.includes('\\n')) {
+            span.style.whiteSpace = 'pre-line';
+            span.style.wordBreak = 'normal';
+            span.style.overflowWrap = 'normal';
+            span.style.hyphens = 'none';
+            span.style.lineHeight = '0.8';  // Very tight line spacing for multi-line text
+            
+            // Add multi-line class to the container
+            text.classList.add('multi-line');
+          }
           text.appendChild(span);
           imgEl.replaceWith(text);
           div.classList.add('no-image-mode');
-          requestAnimationFrame(() => fitTextToBox(text));
+          // CONTROLLED SCALING: Re-enable scaling but only for multi-line text
+          if (text.classList.contains('multi-line')) {
+            console.log('Applying controlled scaling to multi-line fallback text');
+            requestAnimationFrame(() => fitTextToBoxControlled(text));
+          }
         });
       } else {
         // If we rendered text directly, ensure it fits
         const text = div.querySelector('.no-image');
-        if (text) requestAnimationFrame(() => fitTextToBox(text));
+        // CONTROLLED SCALING: Re-enable scaling but only for multi-line text
+        if (text && text.classList.contains('multi-line')) {
+          console.log('FOUND MULTI-LINE TEXT - classes:', text.classList.toString());
+          console.log('Container element:', text);
+          requestAnimationFrame(() => fitTextToBoxControlled(text));
+        } else if (text) {
+          console.log('NOT MULTI-LINE - classes:', text.classList.toString());
+        }
+        
+        // DEBUG: Log what's happening with this container
+        if (text) {
+          console.log('Text container found:', text);
+          console.log('Container classes:', text.className);
+          console.log('Container computed style:', window.getComputedStyle(text));
+          const span = text.querySelector('.no-image-text');
+          if (span) {
+            console.log('Text span style:', window.getComputedStyle(span));
+            console.log('Text span transform:', span.style.transform);
+          }
+        }
       }
       div.addEventListener("click", (event) => {
         if (suppressClick) { suppressClick = false; return; }
@@ -363,6 +555,36 @@
     layoutGrid();
   }
 
+  // Controlled scaling specifically for multi-line text
+  function fitTextToBoxControlled(el) {
+    if (!el) {
+      console.log('fitTextToBoxControlled: No element provided');
+      return;
+    }
+    const span = el.querySelector('.no-image-text');
+    if (!span) {
+      console.log('fitTextToBoxControlled: No text span found');
+      return;
+    }
+    
+    console.log('fitTextToBoxControlled: Starting controlled scaling');
+    console.log('Element:', el);
+    console.log('Span:', span);
+    console.log('Span innerHTML:', span.innerHTML);
+    
+    // Force a smaller font size for multi-line text
+    console.log('FORCING smaller font size for multi-line text');
+    span.style.fontSize = '0.7rem';
+    span.style.lineHeight = '0.9';
+    
+    // Also try to measure and log dimensions
+    setTimeout(() => {
+      const containerHeight = el.clientHeight;
+      const textHeight = span.scrollHeight;
+      console.log(`After font change - Container height: ${containerHeight}px, Text height: ${textHeight}px`);
+    }, 100);
+  }
+
   // Fit big bold text into a square box using transform scale only
   function fitTextToBox(el) {
     if (!el) return;
@@ -375,15 +597,52 @@
     // Base margin (35%) and per-item scale factor (1..10 => 100%..10%)
     const userFactorRaw = parseFloat(el.getAttribute('data-scale-adjust') || '1');
     const userFactor = Number.isFinite(userFactorRaw) ? userFactorRaw : 1;
-    const factor = 0.65 * userFactor;
+    
+    // Check if this is multi-line text (has newlines)
+    const isMultiLine = span.innerHTML.includes('<br>') || span.innerHTML.includes('\n');
+    
+    // Use different scaling approach for multi-line text
+    let factor;
+    if (isMultiLine) {
+      // For multi-line text, use much more conservative scaling to ensure all lines fit
+      factor = 0.25 * userFactor;  // Much less aggressive scaling
+      console.log(`fitTextToBox: MULTI-LINE text, userFactor=${userFactor}, factor=${factor}`);
+    } else {
+      factor = 0.65 * userFactor;
+      console.log(`fitTextToBox: single-line text, userFactor=${userFactor}, factor=${factor}`);
+    }
+    
     // Measure available vs content size
     const cw = el.clientWidth || 1;
     const ch = el.clientHeight || 1;
     const rect = span.getBoundingClientRect();
     const sw = rect.width || 1;
     const sh = rect.height || 1;
-    const scale = Math.max(0.1, Math.min(1, factor * Math.min(cw / sw, ch / sh)));
+    
+    // For multi-line text, be more conservative with height scaling
+    let scale;
+    if (isMultiLine) {
+      // Prioritize fitting the height over width for multi-line text
+      const widthScale = cw / sw;
+      const heightScale = ch / sh;
+      scale = Math.max(0.1, Math.min(1, factor * Math.min(widthScale, heightScale * 1.2))); // Give 20% more height allowance
+    } else {
+      scale = Math.max(0.1, Math.min(1, factor * Math.min(cw / sw, ch / sh)));
+    }
+    
+    console.log(`fitTextToBox: final scale=${scale}, isMultiLine=${isMultiLine}`);
+    console.log(`Container dimensions: ${cw}x${ch}, Content dimensions: ${sw}x${sh}`);
+    console.log(`Text content: "${span.innerHTML}"`);
+    
+    // Apply scale without affecting layout by using transform-origin and ensuring no overflow
     span.style.transform = `scale(${scale})`;
+    span.style.transformOrigin = 'center center';
+    
+    // Ensure the scaled text doesn't affect cell dimensions but allow text to be visible
+    el.style.overflow = 'visible';
+    
+    // Log the final result for debugging
+    console.log(`Text scaling complete: scale=${scale}, container overflow=${el.style.overflow}`);
   }
 
   function layoutGrid() {
@@ -440,8 +699,8 @@
     grid.style.setProperty("--cols", String(bestCols));
     document.documentElement.style.setProperty("--label-font", `${bestLabelFont}px`);
     grid.style.setProperty("--dec-top", `${Math.max(24, Math.floor(bestTileWidth * 0.35))}px`);
-    // Refit any fallback text boxes after layout changes
-    grid.querySelectorAll('.no-image').forEach((el) => fitTextToBox(el));
+    // Refit any fallback text boxes after layout changes - DISABLED to prevent interference
+    // grid.querySelectorAll('.no-image').forEach((el) => fitTextToBox(el));
   }
 
   window.addEventListener("resize", layoutGrid);
