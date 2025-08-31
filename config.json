@@ -1,5 +1,5 @@
 [
-  { "name": "Brat", "price": 5.00, "image": "images/brat1.jpg", "scale": 3 },
+  { "name": "Brat", "price": 5.00, "image": "images/brat2.png", "scale": 3 },
   { "name": "Brat w/Kraut ", "price": 5.20, "image": "images/brat-with-kraut.jpg", "scale": 6, "color": "red" },
   { "name": "Pulled-Pork with Kraut", "price": 7.50, "image": "images/pulled-pork-kraut.jpg", "scale": 6 },
   { "name": "Side Kraut", "price": 2.50, "image": "images/side-kraut.jpg", "scale": 1 },
