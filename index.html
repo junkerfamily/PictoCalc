@@ -34,6 +34,16 @@
     align-items: stretch;  /* Stretch items to fill available space */
     align-content: start;  /* Pack rows tightly at the top */
   }
+  
+  /* Apply scaling when needed to prevent footer overlap */
+  .grid[style*="--tile-scale"] {
+    transform-origin: top left;
+  }
+  
+  .grid[style*="--tile-scale"] .item {
+    transform: scale(var(--tile-scale, 1));
+    transform-origin: center center;
+  }
 
   /* Item card */
   .item {
@@ -716,9 +726,36 @@
         }
       }
     }
+    
+    // Calculate final dimensions and check for overlap
+    const rows = Math.max(1, Math.ceil(n / bestCols));
+    const tileHeight = bestTileWidth + 20; // Fixed compact height for mobile
+    const totalHeight = rows * tileHeight + gap * (rows - 1);
+    
+    // If content would overlap the footer, scale down all rows proportionally
+    let scaleFactor = 1;
+    if (totalHeight > availableHeight) {
+      scaleFactor = Math.max(0.6, availableHeight / totalHeight); // Minimum 60% of original size
+      console.log(`Scaling down grid by factor ${scaleFactor.toFixed(2)} to prevent footer overlap`);
+    }
+    
+    // Apply scaling to tile dimensions
+    const scaledTileWidth = bestTileWidth * scaleFactor;
+    const scaledLabelFont = Math.max(10, bestLabelFont * scaleFactor); // Minimum 10px font
+    
     grid.style.setProperty("--cols", String(bestCols));
-    document.documentElement.style.setProperty("--label-font", `${bestLabelFont}px`);
-    grid.style.setProperty("--dec-top", `${Math.max(24, Math.floor(bestTileWidth * 0.35))}px`);
+    document.documentElement.style.setProperty("--label-font", `${scaledLabelFont}px`);
+    grid.style.setProperty("--dec-top", `${Math.max(20, Math.floor(scaledTileWidth * 0.35))}px`);
+    
+    // Apply scaling to the grid items themselves
+    if (scaleFactor < 1) {
+      grid.style.setProperty("--tile-scale", String(scaleFactor));
+      grid.style.setProperty("--tile-width", `${scaledTileWidth}px`);
+    } else {
+      grid.style.removeProperty("--tile-scale");
+      grid.style.removeProperty("--tile-width");
+    }
+    
     // Refit any fallback text boxes after layout changes - DISABLED to prevent interference
     // grid.querySelectorAll('.no-image').forEach((el) => fitTextToBox(el));
   }
