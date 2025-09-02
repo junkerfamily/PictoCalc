@@ -698,8 +698,16 @@
       const rows = Math.max(1, Math.ceil(n / cols));
       const tileWidth = (availableWidth - gap * (cols - 1)) / cols;
       const labelFont = Math.max(11, Math.min(16, Math.round(tileWidth * 0.15)));
-      const labelHeight = labelFont + 12; // font size + vertical padding
-      const tileHeight = tileWidth + 20; // Fixed compact height for mobile
+      
+      // Calculate actual label height accounting for text wrapping
+      const maxLabelHeight = Math.max(...items.map(item => {
+        const words = item.name.split(' ');
+        const charsPerLine = Math.floor(tileWidth / (labelFont * 0.6)); // Rough estimate
+        const lines = Math.ceil(item.name.length / charsPerLine);
+        return lines * (labelFont + 4) + 12; // line height + padding
+      }));
+      
+      const tileHeight = tileWidth + maxLabelHeight; // Image + actual label height
       const totalHeight = rows * tileHeight + gap * (rows - 1);
       if (tileWidth > bestTileWidth && totalHeight <= availableHeight) {
         bestTileWidth = tileWidth;
@@ -714,8 +722,16 @@
         const rows = Math.max(1, Math.ceil(n / cols));
         const tileWidth = (availableWidth - gap * (cols - 1)) / cols;
         const labelFont = Math.max(11, Math.min(16, Math.round(tileWidth * 0.15)));
-        const labelHeight = labelFont + 12;
-        const tileHeight = tileWidth + 20; // Fixed compact height for mobile
+        
+        // Calculate actual label height accounting for text wrapping
+        const maxLabelHeight = Math.max(...items.map(item => {
+          const words = item.name.split(' ');
+          const charsPerLine = Math.floor(tileWidth / (labelFont * 0.6)); // Rough estimate
+          const lines = Math.ceil(item.name.length / charsPerLine);
+          return lines * (labelFont + 4) + 12; // line height + padding
+        }));
+        
+        const tileHeight = tileWidth + maxLabelHeight; // Image + actual label height
         const totalHeight = rows * tileHeight + gap * (rows - 1);
         const score = tileWidth - Math.max(0, totalHeight - availableHeight); // prefer large tiles with less overflow
         if (score > bestScore) {
@@ -729,7 +745,15 @@
     
     // Calculate final dimensions and check for overlap
     const rows = Math.max(1, Math.ceil(n / bestCols));
-    const tileHeight = bestTileWidth + 20; // Fixed compact height for mobile
+    
+    // Calculate actual label height for final calculation
+    const maxLabelHeight = Math.max(...items.map(item => {
+      const charsPerLine = Math.floor(bestTileWidth / (bestLabelFont * 0.6)); // Rough estimate
+      const lines = Math.ceil(item.name.length / charsPerLine);
+      return lines * (bestLabelFont + 4) + 12; // line height + padding
+    }));
+    
+    const tileHeight = bestTileWidth + maxLabelHeight; // Image + actual label height
     const totalHeight = rows * tileHeight + gap * (rows - 1);
     
     // If content would overlap the footer, scale down all rows proportionally
