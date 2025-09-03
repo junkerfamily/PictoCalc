@@ -699,12 +699,11 @@
       const tileWidth = (availableWidth - gap * (cols - 1)) / cols;
       const labelFont = Math.max(11, Math.min(16, Math.round(tileWidth * 0.15)));
       
-      // Calculate actual label height accounting for text wrapping
+      // Calculate actual label height accounting for text wrapping - more conservative estimate
       const maxLabelHeight = Math.max(...items.map(item => {
-        const words = item.name.split(' ');
-        const charsPerLine = Math.floor(tileWidth / (labelFont * 0.6)); // Rough estimate
+        const charsPerLine = Math.floor(tileWidth / (labelFont * 0.5)); // More generous chars per line
         const lines = Math.ceil(item.name.length / charsPerLine);
-        return lines * (labelFont + 4) + 12; // line height + padding
+        return Math.max(20, lines * (labelFont + 2) + 8); // Minimum 20px, tighter line spacing
       }));
       
       const tileHeight = tileWidth + maxLabelHeight; // Image + actual label height
@@ -723,12 +722,11 @@
         const tileWidth = (availableWidth - gap * (cols - 1)) / cols;
         const labelFont = Math.max(11, Math.min(16, Math.round(tileWidth * 0.15)));
         
-        // Calculate actual label height accounting for text wrapping
+        // Calculate actual label height accounting for text wrapping - more conservative estimate
         const maxLabelHeight = Math.max(...items.map(item => {
-          const words = item.name.split(' ');
-          const charsPerLine = Math.floor(tileWidth / (labelFont * 0.6)); // Rough estimate
+          const charsPerLine = Math.floor(tileWidth / (labelFont * 0.5)); // More generous chars per line
           const lines = Math.ceil(item.name.length / charsPerLine);
-          return lines * (labelFont + 4) + 12; // line height + padding
+          return Math.max(20, lines * (labelFont + 2) + 8); // Minimum 20px, tighter line spacing
         }));
         
         const tileHeight = tileWidth + maxLabelHeight; // Image + actual label height
@@ -746,11 +744,11 @@
     // Calculate final dimensions and check for overlap
     const rows = Math.max(1, Math.ceil(n / bestCols));
     
-    // Calculate actual label height for final calculation
+    // Calculate actual label height for final calculation - more conservative estimate
     const maxLabelHeight = Math.max(...items.map(item => {
-      const charsPerLine = Math.floor(bestTileWidth / (bestLabelFont * 0.6)); // Rough estimate
+      const charsPerLine = Math.floor(bestTileWidth / (bestLabelFont * 0.5)); // More generous chars per line
       const lines = Math.ceil(item.name.length / charsPerLine);
-      return lines * (bestLabelFont + 4) + 12; // line height + padding
+      return Math.max(20, lines * (bestLabelFont + 2) + 8); // Minimum 20px, tighter line spacing
     }));
     
     const tileHeight = bestTileWidth + maxLabelHeight; // Image + actual label height
@@ -759,8 +757,12 @@
     // If content would overlap the footer, scale down all rows proportionally
     let scaleFactor = 1;
     if (totalHeight > availableHeight) {
-      scaleFactor = Math.max(0.6, availableHeight / totalHeight); // Minimum 60% of original size
+      scaleFactor = Math.max(0.7, availableHeight / totalHeight); // Minimum 70% of original size (less conservative)
       console.log(`Scaling down grid by factor ${scaleFactor.toFixed(2)} to prevent footer overlap`);
+    } else if (totalHeight < availableHeight * 0.8) {
+      // If we're using less than 80% of available space, try to scale up slightly
+      scaleFactor = Math.min(1.1, availableHeight / totalHeight);
+      console.log(`Scaling up grid by factor ${scaleFactor.toFixed(2)} to use more space`);
     }
     
     // Apply scaling to tile dimensions
