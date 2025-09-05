@@ -1,14 +1,23 @@
-[
-  { "name": "Brat", "price": 6.00, "image": "images/brat2.png", "scale": 3 },
-  { "name": "Brat w/Kraut ", "price": 6.00, "image": "images/brat-kraut.png", "scale": 6, "color": "red" },
-  { "name": "Pulled-Pork", "price": 6.00, "image": "images/pork.png", "scale": 6 },
-  { "name": "Pulled-Pork with Kraut", "price": 6.00, "image": "images/pork-with-kraut.png", "scale": 6 },
-  { "name": "Potato Salad", "price": 5.00, "image": "images/potato-salad.png", "scale": 1 },
-  { "name": "Side Kraut", "price": 3.00, "image": "images/side-kraut.png", "scale": 1 },
-  { "name": "Pretzel", "price": 5.00, "image": "images/pretzel.jpg", "scale": 1 },
-  { "name": "Pretzel with Cheese", "price": 5.00, "image": "images/pretzel-with-cheese.png", "scale": 2 },
-  { "name": "Apple Crisp", "price": 5.00, "image": "images/apple-crisp.png", "scale": 1 },
-  { "name": "Water", "price": 1.00, "image": "images/water.png", "scale": 1 },
-  { "name": "Version", "price": 1.05, "image": "images/version.jpg", "scale": 7, "color": "black" }
-]
+{
+  "defaultMenu": "Menu A",
+  "menus": {
+    "Menu A": [
+      { "name": "Brat", "price": 6.00, "image": "images/brat2.png", "scale": 3 },
+      { "name": "Brat w/Kraut ", "price": 6.00, "image": "images/brat-kraut.png", "scale": 6, "color": "red" },
+      { "name": "Pulled-Pork", "price": 6.00, "image": "images/pork.png", "scale": 6 },
+      { "name": "Pulled-Pork with Kraut", "price": 6.00, "image": "images/pork-with-kraut.png", "scale": 6 },
+      { "name": "Potato Salad", "price": 5.00, "image": "images/potato-salad.png", "scale": 1 },
+      { "name": "Side Kraut", "price": 3.00, "image": "images/side-kraut.png", "scale": 1 },
+      { "name": "Pretzel", "price": 5.00, "image": "images/pretzel.jpg", "scale": 1 },
+      { "name": "Pretzel with Cheese", "price": 5.00, "image": "images/pretzel-with-cheese.png", "scale": 2 },
+      { "name": "Apple Crisp", "price": 5.00, "image": "images/apple-crisp.png", "scale": 1 },
+      { "name": "Water", "price": 1.00, "image": "images/water.png", "scale": 1 },
+      { "name": "Version", "price": 1.05, "image": "images/version.jpg", "scale": 7, "color": "black" }
+    ],
+    "Menu B": [
+    ],
+    "Menu C": [
+    ]
+  }
+}
 

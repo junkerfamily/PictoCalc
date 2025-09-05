@@ -319,6 +319,28 @@
     font-size: 14px;
     display: none;
   }
+
+  /* Menu tabs in footer */
+  .menu-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .menu-tabs .tab {
+    background: #f3f4f6;
+    color: #111827;
+    border: 1px solid #e5e7eb;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .menu-tabs .tab.active {
+    background: #111827;
+    color: #ffffff;
+    border-color: #111827;
+  }
 </style>
 </head>
 <body>
@@ -330,11 +352,17 @@
 
 <!-- Total Footer -->
 <div class="footer">
-  <button id="resetBtn">Reset</button>
-  <div>Total: $<span id="total">0.00</span></div>
+  <div class="menu-tabs" id="menuTabs"></div>
+  <div>
+    <button id="resetBtn">Reset</button>
+    <span style="margin-left:12px">Total: $<span id="total">0.00</span></span>
+  </div>
+  
 </div>
 
 <script>
+  let configData = null;
+  let currentMenu = "";
   let items = [];
   let counts = {};
 
@@ -343,15 +371,58 @@
       const url = `config.json?ts=${Date.now()}`;
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      items = await res.json();
+      const json = await res.json();
+      // Support both legacy array format and new multi-menu format
+      if (Array.isArray(json)) {
+        configData = { defaultMenu: "Menu A", menus: { "Menu A": json } };
+      } else {
+        configData = json;
+      }
       hideError();
     } catch (err) {
       console.error("Failed to load config.json", err);
       showError("Failed to load config.json. If running locally, start a server: python3 -m http.server");
-      items = [];
+      configData = { defaultMenu: "Menu A", menus: { "Menu A": [] } };
     }
+    const menuNames = Object.keys(configData.menus || {});
+    currentMenu = (configData.defaultMenu && menuNames.includes(configData.defaultMenu)) ? configData.defaultMenu : (menuNames[0] || "Menu A");
+    setMenu(currentMenu);
+    renderMenuTabs();
+  }
+
+  function setMenu(menuName) {
+    currentMenu = menuName;
+    items = (configData && configData.menus && configData.menus[menuName]) || [];
     counts = Object.fromEntries(items.map(i => [i.name, 0]));
+    updateTotal();
     renderMenu();
+    highlightActiveTab();
+  }
+
+  function renderMenuTabs() {
+    const container = document.getElementById("menuTabs");
+    if (!container || !configData) return;
+    container.innerHTML = "";
+    const menus = Object.keys(configData.menus || {});
+    menus.forEach(name => {
+      const btn = document.createElement("button");
+      btn.className = "tab";
+      btn.textContent = name;
+      btn.onclick = () => {
+        // Reset totals and switch menu
+        setMenu(name);
+      };
+      container.appendChild(btn);
+    });
+    highlightActiveTab();
+  }
+
+  function highlightActiveTab() {
+    const container = document.getElementById("menuTabs");
+    if (!container) return;
+    for (const el of container.querySelectorAll('.tab')) {
+      el.classList.toggle('active', el.textContent === currentMenu);
+    }
   }
 
   function showError(message) {
