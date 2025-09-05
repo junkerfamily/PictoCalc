@@ -280,27 +280,6 @@
     pointer-events: none;
   }
 
-  /* Price tooltip (visible on hover/focus for mouse/trackpad users) */
-  .price-tooltip {
-    position: absolute;
-    left: 8px;
-    bottom: 8px;
-    background: rgba(17,24,39,0.92);
-    color: #fff;
-    padding: 4px 8px;
-    border-radius: 999px;
-    font-size: 12px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    opacity: 0;
-    transition: opacity 0.15s ease;
-    pointer-events: none;
-    z-index: 2;
-  }
-  .item:hover .price-tooltip,
-  .item:focus-within .price-tooltip {
-    opacity: 1;
-  }
-
   /* Footer total bar */
   .footer {
     background: white;
@@ -473,13 +452,11 @@
       const textScaleParam = Number.isFinite(Number(item.scale)) ? Number(item.scale) : 1;
       const textScaleFactor = Math.max(0.1, 1 - 0.1 * (textScaleParam - 1));
       console.log(`Item: ${item.name}, HasImage: ${hasImage}, Scale: ${textScaleParam}, Factor: ${textScaleFactor}`);
-      const priceText = typeof item.price === 'number' ? `$${item.price.toFixed(2)}` : '';
       div.innerHTML = `
         <div class="swipe-bg"><span class="minus">-1</span></div>
         <div class="item-content">
           ${hasImage ? `<img src="${item.image}" alt="${item.name}">` : `<div class=\"no-image\" data-scale-adjust=\"${textScaleFactor}\" data-scale-level=\"${textScaleParam}\" data-color=\"${item.color || 'black'}\"><span class=\"no-image-text\">${item.name}</span></div>`}
           ${counts[item.name] > 0 ? `<div class=\"count\">${counts[item.name]}</div>` : ""}
-          ${priceText ? `<div class=\"price-tooltip\" aria-hidden=\"true\">${priceText}</div>` : ''}
           <div class="label">${item.name}</div>
         </div>
       `;
