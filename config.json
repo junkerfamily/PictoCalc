@@ -15,14 +15,14 @@
       { "name": "Version", "price": 1.05, "image": "images/version.jpg", "scale": 7, "color": "black" }
     ],
     "Menu B": [
-      { "name": "Adult Dinner", "price": 14.00, "scale": 6 },
-      { "name": "Child Dinner", "price": 7.00, "scale": 6 },
-      { "name": "Takeout Dinner", "price": 14.00, "scale": 6 },
-      { "name": "T-Shirt", "price": 15.00, "scale": 6 },
-      { "name": "Book-Hard Cover", "price": 70.00, "scale": 6 },
-      { "name": "Book-Soft Cover", "price": 25.00, "scale": 6 },
-      { "name": "Book-Archdiocese", "price": 40.00, "scale": 6 },
-      { "name": "Closeout Rice", "price": 10.00, "scale": 6 }
+      { "name": "Adult Dinner", "price": 14.00, "image": "images/version.jpg",  "scale": 8 },
+      { "name": "Child Dinner", "price": 7.00, "scale": 8 },
+      { "name": "Takeout Dinner", "price": 14.00, "scale": 8 },
+      { "name": "T-Shirt", "price": 15.00, "scale": 8 },
+      { "name": "Book-Hard Cover", "price": 70.00, "scale": 8 },
+      { "name": "Book-Soft Cover", "price": 25.00, "scale": 8 },
+      { "name": "Book-Archdiocese", "price": 40.00, "scale": 8 },
+      { "name": "Closeout Rice", "price": 10.00, "scale": 8 }
     ],
     "Menu C": [
     ]
