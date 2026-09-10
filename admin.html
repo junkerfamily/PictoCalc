@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PictoCalc Admin</title>
+<link rel="icon" type="image/png" href="images/hamburger.png">
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --ink: #111827;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --accent: #111827;
+    --ok: #166534;
+    --ok-bg: #dcfce7;
+    --err: #991b1b;
+    --err-bg: #fee2e2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  header .actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 20px 16px 80px;
+  }
+  .menu-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .menu-tabs .tab {
+    background: #f3f4f6;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .menu-tabs .tab.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 110px;
+    gap: 12px;
+    align-items: center;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+  .row .name {
+    font-size: 15px;
+    font-weight: 600;
+    word-break: break-word;
+  }
+  .row .meta {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  label.price-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  input[type="number"] {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+  input[type="number"]:focus {
+    outline: 2px solid #11182733;
+    border-color: #111827;
+  }
+  button {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .btn-primary {
+    background: #111827;
+    color: #fff;
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn-secondary {
+    background: #f3f4f6;
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .status {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    display: none;
+  }
+  .status.ok {
+    display: block;
+    background: var(--ok-bg);
+    color: var(--ok);
+  }
+  .status.err {
+    display: block;
+    background: var(--err-bg);
+    color: var(--err);
+  }
+  .empty {
+    color: var(--muted);
+    padding: 24px 8px;
+    text-align: center;
+  }
+  .hint {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0 0 16px;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Admin · Prices</h1>
+    <div class="actions">
+      <a href="/" style="text-decoration:none">
+        <button type="button" class="btn-secondary">← Calculator</button>
+      </a>
+      <button type="button" class="btn-primary" id="saveBtn">Save prices</button>
+    </div>
+  </header>
+
+  <main>
+    <p class="hint">Edit prices per menu, then save. The calculator picks up changes on refresh. A backup of config.json is kept automatically.</p>
+    <div id="status" class="status"></div>
+    <div class="menu-tabs" id="menuTabs"></div>
+    <div id="itemList"></div>
+  </main>
+
+<script>
+  let configData = null;
+  let currentMenu = "";
+  let dirty = false;
+
+  const statusEl = document.getElementById("status");
+  const saveBtn = document.getElementById("saveBtn");
+
+  async function init() {
+    try {
+      const res = await fetch(`/api/config?ts=${Date.now()}`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      configData = await res.json();
+      const menus = Object.keys(configData.menus || {});
+      currentMenu = (configData.defaultMenu && menus.includes(configData.defaultMenu))
+        ? configData.defaultMenu
+        : (menus[0] || "");
+      renderTabs();
+      renderItems();
+      setDirty(false);
+      clearStatus();
+    } catch (err) {
+      console.error(err);
+      showStatus("Failed to load config. Make sure the Node server is running (npm start).", "err");
+    }
+  }
+
+  function renderTabs() {
+    const container = document.getElementById("menuTabs");
+    container.innerHTML = "";
+    Object.keys(configData.menus || {}).forEach((name) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "tab" + (name === currentMenu ? " active" : "");
+      btn.textContent = name;
+      btn.onclick = () => {
+        flushPricesFromDom();
+        currentMenu = name;
+        renderTabs();
+        renderItems();
+      };
+      container.appendChild(btn);
+    });
+  }
+
+  function renderItems() {
+    const list = document.getElementById("itemList");
+    list.innerHTML = "";
+    const items = (configData.menus && configData.menus[currentMenu]) || [];
+    if (!items.length) {
+      list.innerHTML = '<div class="empty">No items in this menu.</div>';
+      return;
+    }
+    items.forEach((item, index) => {
+      const row = document.createElement("div");
+      row.className = "row";
+      row.innerHTML = `
+        <div>
+          <div class="name"></div>
+          <div class="meta"></div>
+        </div>
+        <label class="price-label">
+          Price ($)
+          <input type="number" min="0" step="0.01" inputmode="decimal" data-index="${index}">
+        </label>
+      `;
+      row.querySelector(".name").textContent = item.name;
+      const meta = [];
+      if (item.image) meta.push(item.image.replace(/^images\//, ""));
+      row.querySelector(".meta").textContent = meta.join(" · ");
+      const input = row.querySelector("input");
+      input.value = Number(item.price).toFixed(2);
+      input.addEventListener("input", () => setDirty(true));
+      list.appendChild(row);
+    });
+  }
+
+  function flushPricesFromDom() {
+    if (!configData || !currentMenu) return;
+    const items = configData.menus[currentMenu] || [];
+    document.querySelectorAll('#itemList input[type="number"]').forEach((input) => {
+      const index = Number(input.dataset.index);
+      if (!items[index]) return;
+      const value = parseFloat(input.value);
+      items[index].price = Number.isFinite(value) ? value : items[index].price;
+    });
+  }
+
+  function setDirty(value) {
+    dirty = value;
+    saveBtn.disabled = !dirty;
+    saveBtn.textContent = dirty ? "Save prices" : "Saved";
+  }
+
+  function showStatus(message, kind) {
+    statusEl.textContent = message;
+    statusEl.className = "status " + kind;
+  }
+
+  function clearStatus() {
+    statusEl.textContent = "";
+    statusEl.className = "status";
+  }
+
+  saveBtn.addEventListener("click", async () => {
+    flushPricesFromDom();
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving…";
+    try {
+      const res = await fetch("/api/config", {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(configData),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      configData = data.success ? configData : configData;
+      // Reload from server so formatting matches what was written
+      const fresh = await fetch(`/api/config?ts=${Date.now()}`, { cache: "no-store" });
+      configData = await fresh.json();
+      renderTabs();
+      renderItems();
+      setDirty(false);
+      showStatus("Prices saved. Refresh the calculator to use the new prices.", "ok");
+    } catch (err) {
+      console.error(err);
+      setDirty(true);
+      showStatus(err.message || "Save failed", "err");
+    }
+  });
+
+  window.addEventListener("beforeunload", (e) => {
+    if (!dirty) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
+
+  init();
+</script>
+</body>
+</html>

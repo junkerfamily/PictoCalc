@@ -345,6 +345,16 @@
     color: #ffffff;
     border-color: #111827;
   }
+  .admin-link {
+    margin-left: 10px;
+    font-size: 13px;
+    color: #6b7280;
+    text-decoration: none;
+  }
+  .admin-link:hover {
+    color: #111827;
+    text-decoration: underline;
+  }
 </style>
 </head>
 <body>
@@ -360,6 +370,7 @@
   <div>
     <button id="resetBtn">Reset</button>
     <span style="margin-left:12px">Total: $<span id="total">0.00</span></span>
+    <a class="admin-link" href="/admin.html" title="Change menu prices">Admin</a>
   </div>
   
 </div>
@@ -385,7 +396,7 @@
       hideError();
     } catch (err) {
       console.error("Failed to load config.json", err);
-      showError("Failed to load config.json. If running locally, start a server: python3 -m http.server");
+      showError("Failed to load config.json. If running locally, start the server: npm start (or ./launch.sh)");
       configData = { defaultMenu: "Menu A", menus: { "Menu A": [] } };
     }
     const menuNames = Object.keys(configData.menus || {});
