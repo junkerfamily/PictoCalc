@@ -63,11 +63,11 @@ app.get("/api/backups", requireAdmin, (_req, res) => {
 app.use("/admin.html", requireAdmin);
 app.use(express.static(ROOT));
 
-app.listen(PORT, () => {
-  console.log(`PictoCalc running at http://localhost:${PORT}`);
-  console.log(`Admin: http://localhost:${PORT}/admin.html (user: ${ADMIN_USER})`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`PictoCalc running on port ${PORT}`);
+  console.log(`Admin: /admin.html (user: ${ADMIN_USER})`);
   if (ADMIN_PASSWORD === "changeme") {
-    console.log("WARNING: using default ADMIN_PASSWORD. Set ADMIN_PASSWORD or create a .env file.");
+    console.log("WARNING: using default ADMIN_PASSWORD. Set ADMIN_PASSWORD in the host environment.");
   }
 });
 
