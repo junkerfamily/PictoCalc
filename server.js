@@ -51,6 +51,17 @@ app.get("/api/config", (_req, res) => {
   }
 });
 
+// Calculator and browsers requesting /config.json must see the persistent copy.
+app.get("/config.json", (_req, res) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    res.json(readConfig());
+  } catch (err) {
+    console.error("Failed to read config", err);
+    res.status(500).json({ error: "Failed to read config.json" });
+  }
+});
+
 app.put("/api/config", requireAdmin, (req, res) => {
   try {
     const validated = validateConfig(req.body);
