@@ -77,38 +77,39 @@
     display: grid;
     grid-template-columns: 1fr 110px;
     gap: 12px;
-    align-items: center;
+    align-items: start;
     background: var(--card);
     border: 1px solid var(--line);
     border-radius: 12px;
     padding: 12px 14px;
     margin-bottom: 8px;
   }
-  .row .name {
-    font-size: 15px;
-    font-weight: 600;
-    word-break: break-word;
-  }
   .row .meta {
     font-size: 12px;
     color: var(--muted);
-    margin-top: 2px;
+    margin-top: 6px;
   }
-  label.price-label {
+  label.field-label {
     display: flex;
     flex-direction: column;
     gap: 4px;
     font-size: 12px;
     color: var(--muted);
   }
+  input[type="text"],
   input[type="number"] {
     width: 100%;
     padding: 8px 10px;
     border: 1px solid var(--line);
     border-radius: 8px;
     font-size: 16px;
+    color: var(--ink);
+    background: #fff;
+  }
+  input[type="number"] {
     font-variant-numeric: tabular-nums;
   }
+  input[type="text"]:focus,
   input[type="number"]:focus {
     outline: 2px solid #11182733;
     border-color: #111827;
@@ -160,21 +161,26 @@
     color: var(--muted);
     margin: 0 0 16px;
   }
+  @media (max-width: 520px) {
+    .row {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>
 </head>
 <body>
   <header>
-    <h1>Admin · Prices</h1>
+    <h1>Admin · Menu</h1>
     <div class="actions">
       <a href="/" style="text-decoration:none">
         <button type="button" class="btn-secondary">← Calculator</button>
       </a>
-      <button type="button" class="btn-primary" id="saveBtn">Save prices</button>
+      <button type="button" class="btn-primary" id="saveBtn">Save changes</button>
     </div>
   </header>
 
   <main>
-    <p class="hint">Edit prices per menu, then save. The calculator picks up changes on refresh. A backup of config.json is kept automatically.</p>
+    <p class="hint">Edit product names and prices per menu, then save. The calculator picks up changes on refresh. A backup of config.json is kept automatically.</p>
     <div id="status" class="status"></div>
     <div class="menu-tabs" id="menuTabs"></div>
     <div id="itemList"></div>
@@ -216,7 +222,7 @@
       btn.className = "tab" + (name === currentMenu ? " active" : "");
       btn.textContent = name;
       btn.onclick = () => {
-        flushPricesFromDom();
+        flushItemsFromDom();
         currentMenu = name;
         renderTabs();
         renderItems();
@@ -238,40 +244,63 @@
       row.className = "row";
       row.innerHTML = `
         <div>
-          <div class="name"></div>
+          <label class="field-label">
+            Name
+            <input type="text" data-field="name" data-index="${index}" autocomplete="off">
+          </label>
           <div class="meta"></div>
         </div>
-        <label class="price-label">
+        <label class="field-label">
           Price ($)
-          <input type="number" min="0" step="0.01" inputmode="decimal" data-index="${index}">
+          <input type="number" min="0" step="0.01" inputmode="decimal" data-field="price" data-index="${index}">
         </label>
       `;
-      row.querySelector(".name").textContent = item.name;
       const meta = [];
       if (item.image) meta.push(item.image.replace(/^images\//, ""));
       row.querySelector(".meta").textContent = meta.join(" · ");
-      const input = row.querySelector("input");
-      input.value = Number(item.price).toFixed(2);
-      input.addEventListener("input", () => setDirty(true));
+      const nameInput = row.querySelector('input[data-field="name"]');
+      const priceInput = row.querySelector('input[data-field="price"]');
+      nameInput.value = item.name;
+      priceInput.value = Number(item.price).toFixed(2);
+      nameInput.addEventListener("input", () => setDirty(true));
+      priceInput.addEventListener("input", () => setDirty(true));
       list.appendChild(row);
     });
   }
 
-  function flushPricesFromDom() {
+  function flushItemsFromDom() {
     if (!configData || !currentMenu) return;
     const items = configData.menus[currentMenu] || [];
-    document.querySelectorAll('#itemList input[type="number"]').forEach((input) => {
+    document.querySelectorAll("#itemList input[data-field]").forEach((input) => {
       const index = Number(input.dataset.index);
       if (!items[index]) return;
-      const value = parseFloat(input.value);
-      items[index].price = Number.isFinite(value) ? value : items[index].price;
+      if (input.dataset.field === "name") {
+        items[index].name = input.value;
+      } else if (input.dataset.field === "price") {
+        const value = parseFloat(input.value);
+        items[index].price = Number.isFinite(value) ? value : items[index].price;
+      }
     });
+  }
+
+  function validateBeforeSave() {
+    flushItemsFromDom();
+    for (const [menuName, items] of Object.entries(configData.menus || {})) {
+      const seen = new Set();
+      for (const item of items) {
+        const name = String(item.name || "").trim();
+        if (!name) return `Every item in ${menuName} needs a name.`;
+        if (seen.has(name)) return `Duplicate name "${name}" in ${menuName}.`;
+        seen.add(name);
+      }
+    }
+    return null;
   }
 
   function setDirty(value) {
     dirty = value;
     saveBtn.disabled = !dirty;
-    saveBtn.textContent = dirty ? "Save prices" : "Saved";
+    saveBtn.textContent = dirty ? "Save changes" : "Saved";
   }
 
   function showStatus(message, kind) {
@@ -285,7 +314,12 @@
   }
 
   saveBtn.addEventListener("click", async () => {
-    flushPricesFromDom();
+    const validationError = validateBeforeSave();
+    if (validationError) {
+      setDirty(true);
+      showStatus(validationError, "err");
+      return;
+    }
     saveBtn.disabled = true;
     saveBtn.textContent = "Saving…";
     try {
@@ -297,14 +331,12 @@
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      configData = data.success ? configData : configData;
-      // Reload from server so formatting matches what was written
       const fresh = await fetch(`/api/config?ts=${Date.now()}`, { cache: "no-store" });
       configData = await fresh.json();
       renderTabs();
       renderItems();
       setDirty(false);
-      showStatus("Prices saved. Refresh the calculator to use the new prices.", "ok");
+      showStatus("Saved. Refresh the calculator to use the new names and prices.", "ok");
     } catch (err) {
       console.error(err);
       setDirty(true);
