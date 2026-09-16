@@ -212,7 +212,14 @@ function validateConfig(body) {
   }
 
   const menus = {};
-  for (const [menuName, items] of Object.entries(body.menus)) {
+  const seenMenuNames = new Set();
+  for (const [rawMenuName, items] of Object.entries(body.menus)) {
+    const menuName = String(rawMenuName ?? "").trim();
+    if (!menuName) throwObject(400, "Menu labels cannot be empty");
+    if (seenMenuNames.has(menuName)) {
+      throwObject(400, `Duplicate menu label "${menuName}"`);
+    }
+    seenMenuNames.add(menuName);
     if (!Array.isArray(items)) {
       throwObject(400, `Menu "${menuName}" must be an array`);
     }
@@ -256,7 +263,7 @@ function validateConfig(body) {
   }
 
   const menuNames = Object.keys(menus);
-  let defaultMenu = body.defaultMenu;
+  let defaultMenu = body.defaultMenu != null ? String(body.defaultMenu).trim() : "";
   if (!defaultMenu || !menuNames.includes(defaultMenu)) {
     defaultMenu = menuNames[0] || "Menu A";
   }

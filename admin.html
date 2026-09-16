@@ -187,8 +187,21 @@
   }
   .toolbar {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: end;
+    gap: 12px;
+    flex-wrap: wrap;
     margin: 12px 0 4px;
+  }
+  .menu-rename {
+    display: flex;
+    align-items: end;
+    gap: 8px;
+    flex: 1;
+    min-width: 220px;
+  }
+  .menu-rename .field-label {
+    flex: 1;
   }
   .status {
     margin-bottom: 14px;
@@ -240,10 +253,17 @@
   </header>
 
   <main>
-    <p class="hint">Edit, add, or remove menu items. Large images are resized automatically (max 1200px). Save to write config.json; refresh the calculator afterward.</p>
+    <p class="hint">Edit menus and items. Rename a menu tab with the label field below. Large images are resized automatically (max 1200px). Save, then refresh the calculator.</p>
     <div id="status" class="status"></div>
     <div class="menu-tabs" id="menuTabs"></div>
     <div class="toolbar">
+      <div class="menu-rename">
+        <label class="field-label">
+          Menu label
+          <input type="text" id="menuLabelInput" autocomplete="off" placeholder="e.g. Lunch">
+        </label>
+        <button type="button" class="btn-secondary" id="renameMenuBtn">Rename</button>
+      </div>
       <button type="button" class="btn-secondary" id="addBtn">+ Add item</button>
     </div>
     <div id="itemList"></div>
@@ -257,6 +277,8 @@
   const statusEl = document.getElementById("status");
   const saveBtn = document.getElementById("saveBtn");
   const addBtn = document.getElementById("addBtn");
+  const menuLabelInput = document.getElementById("menuLabelInput");
+  const renameMenuBtn = document.getElementById("renameMenuBtn");
 
   async function init() {
     try {
@@ -269,12 +291,17 @@
         : (menus[0] || "");
       renderTabs();
       renderItems();
+      syncMenuLabelInput();
       setDirty(false);
       clearStatus();
     } catch (err) {
       console.error(err);
       showStatus("Failed to load config. Make sure the Node server is running (npm start).", "err");
     }
+  }
+
+  function syncMenuLabelInput() {
+    menuLabelInput.value = currentMenu || "";
   }
 
   function renderTabs() {
@@ -290,9 +317,45 @@
         currentMenu = name;
         renderTabs();
         renderItems();
+        syncMenuLabelInput();
       };
       container.appendChild(btn);
     });
+  }
+
+  function renameCurrentMenu() {
+    if (!configData || !currentMenu) return;
+    flushItemsFromDom();
+    const oldName = currentMenu;
+    const newName = String(menuLabelInput.value || "").trim();
+    if (!newName) {
+      showStatus("Menu label cannot be empty.", "err");
+      syncMenuLabelInput();
+      return;
+    }
+    if (newName === oldName) {
+      clearStatus();
+      return;
+    }
+    const existing = Object.keys(configData.menus || {});
+    if (existing.includes(newName)) {
+      showStatus(`A menu named “${newName}” already exists.`, "err");
+      syncMenuLabelInput();
+      return;
+    }
+
+    const menus = {};
+    for (const [name, items] of Object.entries(configData.menus)) {
+      menus[name === oldName ? newName : name] = items;
+    }
+    configData.menus = menus;
+    if (configData.defaultMenu === oldName) configData.defaultMenu = newName;
+    currentMenu = newName;
+    setDirty(true);
+    renderTabs();
+    renderItems();
+    syncMenuLabelInput();
+    showStatus(`Renamed “${oldName}” to “${newName}”. Click Save changes.`, "ok");
   }
 
   function renderItems() {
@@ -452,6 +515,14 @@
 
   function validateBeforeSave() {
     flushItemsFromDom();
+    const menuNames = Object.keys(configData.menus || {});
+    const seenMenus = new Set();
+    for (const menuName of menuNames) {
+      const trimmed = String(menuName || "").trim();
+      if (!trimmed) return "Every menu needs a non-empty label.";
+      if (seenMenus.has(trimmed)) return `Duplicate menu label "${trimmed}".`;
+      seenMenus.add(trimmed);
+    }
     for (const [menuName, items] of Object.entries(configData.menus || {})) {
       const seen = new Set();
       for (const item of items) {
@@ -481,6 +552,13 @@
   }
 
   addBtn.addEventListener("click", addItem);
+  renameMenuBtn.addEventListener("click", renameCurrentMenu);
+  menuLabelInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      renameCurrentMenu();
+    }
+  });
 
   saveBtn.addEventListener("click", async () => {
     const validationError = validateBeforeSave();
@@ -502,8 +580,15 @@
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       const fresh = await fetch(`/api/config?ts=${Date.now()}`, { cache: "no-store" });
       configData = await fresh.json();
+      const menus = Object.keys(configData.menus || {});
+      if (!menus.includes(currentMenu)) {
+        currentMenu = (configData.defaultMenu && menus.includes(configData.defaultMenu))
+          ? configData.defaultMenu
+          : (menus[0] || "");
+      }
       renderTabs();
       renderItems();
+      syncMenuLabelInput();
       setDirty(false);
       showStatus("Saved. Refresh the calculator to see menu changes.", "ok");
     } catch (err) {
