@@ -265,6 +265,45 @@
     padding: 5px 9px;  /* More padding for better appearance */
   }
 
+  /* Desktop-friendly decrement control */
+  .dec-btn {
+    position: absolute;
+    left: 6px;
+    bottom: 6px;
+    z-index: 3;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 14px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+    transition: background 0.15s ease, opacity 0.15s ease;
+  }
+  .dec-btn:hover {
+    background: #1d4ed8;
+  }
+  .dec-btn:active {
+    transform: scale(0.94);
+  }
+  .dec-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+    transform: none;
+    box-shadow: none;
+  }
+  .no-image-mode .dec-btn {
+    bottom: 4px;
+    left: 6px;
+  }
+
   /* Swipe hint (only visible while swiping) */
   .item.swiping::after {
     content: "Swipe left to remove";
@@ -312,6 +351,23 @@
   /* Make only the Reset button ~10% longer without affecting menu tabs */
   #resetBtn {
     padding: 8px 16px; /* was 8px 14px */
+  }
+
+  /* Keep decrement arrow blue (override global button styles) */
+  button.dec-btn {
+    background: #2563eb;
+    padding: 0;
+    border-radius: 999px;
+    font-size: 14px;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+  }
+  button.dec-btn:hover {
+    background: #1d4ed8;
+  }
+  button.dec-btn:disabled,
+  button.dec-btn:disabled:hover {
+    background: #2563eb;
+    opacity: 0.35;
   }
 
   /* Error banner */
@@ -469,8 +525,10 @@
           ${hasImage ? `<img src="${item.image}" alt="${item.name}">` : `<div class=\"no-image\" data-scale-adjust=\"${textScaleFactor}\" data-scale-level=\"${textScaleParam}\" data-color=\"${item.color || 'black'}\"><span class=\"no-image-text\">${item.name}</span></div>`}
           ${counts[item.name] > 0 ? `<div class=\"count\">${counts[item.name]}</div>` : ""}
           <div class="label">${item.name}</div>
+          <button type="button" class="dec-btn" aria-label="Decrease ${item.name}" title="Decrease by 1" ${counts[item.name] > 0 ? "" : "disabled"}>▼</button>
         </div>
       `;
+      div.dataset.itemName = item.name;
       if (!hasImage) {
         div.classList.add('no-image-mode');
         // support manual line breaks ("\n") in names when no image
@@ -606,10 +664,23 @@
       }
       div.addEventListener("click", (event) => {
         if (suppressClick) { suppressClick = false; return; }
+        if (event.target.closest(".dec-btn")) return;
         counts[item.name]++;
         updateTotal();
         updateItemCount(item.name);  // Efficient update instead of full re-render
       });
+
+      const decBtn = div.querySelector(".dec-btn");
+      if (decBtn) {
+        decBtn.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (counts[item.name] <= 0) return;
+          counts[item.name]--;
+          updateTotal();
+          updateItemCount(item.name);
+        });
+      }
 
       // Swipe-to-decrement (left or down swipe)
       let startX = null, startY = null, dragging = false, currentDX = 0, currentDY = 0, dragAxis = null;
@@ -887,9 +958,13 @@
     // Find the div for this specific item
     for (let itemDiv of itemDivs) {
       const label = itemDiv.querySelector('.label');
-      if (label && label.textContent === itemName) {
+      const matches = (itemDiv.dataset.itemName === itemName) ||
+        (label && label.textContent === itemName);
+      if (matches) {
         const existingCount = itemDiv.querySelector('.count');
         const currentCount = counts[itemName];
+        const decBtn = itemDiv.querySelector('.dec-btn');
+        if (decBtn) decBtn.disabled = currentCount <= 0;
         
         if (currentCount > 0) {
           if (existingCount) {
