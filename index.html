@@ -529,7 +529,7 @@
         <div class="item-content">
           ${hasImage ? `<img src="${item.image}" alt="${item.name}">` : `<div class=\"no-image\" data-scale-adjust=\"${textScaleFactor}\" data-scale-level=\"${textScaleParam}\" data-color=\"${item.color || 'black'}\"><span class=\"no-image-text\">${item.name}</span></div>`}
           <div class="count-row">
-            <button type="button" class="dec-btn" aria-label="Decrease ${item.name}" title="Decrease by 1" ${counts[item.name] > 0 ? "" : "disabled"}>▼</button>
+            ${counts[item.name] > 0 ? `<button type="button" class="dec-btn" aria-label="Decrease ${item.name}" title="Decrease by 1">▼</button>` : ""}
             ${counts[item.name] > 0 ? `<div class=\"count\">${counts[item.name]}</div>` : ""}
           </div>
           <div class="label">${item.name}</div>
@@ -676,18 +676,6 @@
         updateTotal();
         updateItemCount(item.name);  // Efficient update instead of full re-render
       });
-
-      const decBtn = div.querySelector(".dec-btn");
-      if (decBtn) {
-        decBtn.addEventListener("click", (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          if (counts[item.name] <= 0) return;
-          counts[item.name]--;
-          updateTotal();
-          updateItemCount(item.name);
-        });
-      }
 
       // Swipe-to-decrement (left or down swipe)
       let startX = null, startY = null, dragging = false, currentDX = 0, currentDY = 0, dragAxis = null;
@@ -968,31 +956,53 @@
       const matches = (itemDiv.dataset.itemName === itemName) ||
         (label && label.textContent === itemName);
       if (matches) {
+        const countRow = itemDiv.querySelector('.count-row') || itemDiv.querySelector('.item-content');
         const existingCount = itemDiv.querySelector('.count');
+        const existingDec = itemDiv.querySelector('.dec-btn');
         const currentCount = counts[itemName];
-        const decBtn = itemDiv.querySelector('.dec-btn');
-        if (decBtn) decBtn.disabled = currentCount <= 0;
         
         if (currentCount > 0) {
+          if (!existingDec) {
+            const decBtn = document.createElement('button');
+            decBtn.type = 'button';
+            decBtn.className = 'dec-btn';
+            decBtn.setAttribute('aria-label', `Decrease ${itemName}`);
+            decBtn.title = 'Decrease by 1';
+            decBtn.textContent = '▼';
+            countRow.prepend(decBtn);
+          }
           if (existingCount) {
-            // Update existing count badge
             existingCount.textContent = currentCount;
           } else {
-            // Create new count badge to the right of the arrow
             const countBadge = document.createElement('div');
             countBadge.className = 'count';
             countBadge.textContent = currentCount;
-            const countRow = itemDiv.querySelector('.count-row');
-            (countRow || itemDiv.querySelector('.item-content')).appendChild(countBadge);
+            countRow.appendChild(countBadge);
           }
-        } else if (existingCount) {
-          // Remove count badge if count is 0
-          existingCount.remove();
+        } else {
+          if (existingDec) existingDec.remove();
+          if (existingCount) existingCount.remove();
         }
         break;
       }
     }
   }
+
+  // Decrement via blue arrow (works for dynamically created buttons too)
+  document.getElementById("menuGrid").addEventListener("click", (event) => {
+    const decBtn = event.target.closest(".dec-btn");
+    if (!decBtn) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const itemDiv = decBtn.closest(".item");
+    if (!itemDiv) return;
+    const itemName = itemDiv.dataset.itemName ||
+      (itemDiv.querySelector(".label") && itemDiv.querySelector(".label").textContent);
+    if (!itemName || !counts[itemName]) return;
+    counts[itemName]--;
+    updateTotal();
+    updateItemCount(itemName);
+  });
 
   document.getElementById("resetBtn").onclick = () => {
     for (let key in counts) counts[key] = 0;
