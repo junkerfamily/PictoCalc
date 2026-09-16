@@ -238,11 +238,25 @@
     color: #333;
   }
 
-  /* Count badge */
-  .count {
+  /* Count controls: arrow + badge */
+  .count-row {
     position: absolute;
     top: 6px;
     right: 6px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .no-image-mode .count-row {
+    top: auto;
+    bottom: 4px;
+    right: 8px;
+  }
+
+  /* Count badge */
+  .count {
+    position: static;
     background: #ff4444;
     color: white;
     padding: 4px 8px;
@@ -253,24 +267,18 @@
     font-weight: bold;
   }
   
-  /* Count badge for text-only items - use bottom space to prevent overlap */
+  /* Count badge for text-only items */
   .no-image-mode .count {
-    top: auto;
-    bottom: 0;  /* Sit flush to the bottom edge for maximum text room */
-    right: 8px;
     background: #ff4444;
     box-shadow: 0 3px 6px rgba(0,0,0,0.3);
-    border: 2px solid white;  /* White border for better visibility */
-    font-size: 14px;  /* Slightly larger for better visibility in bottom position */
-    padding: 5px 9px;  /* More padding for better appearance */
+    border: 2px solid white;
+    font-size: 14px;
+    padding: 5px 9px;
   }
 
   /* Desktop-friendly decrement control */
   .dec-btn {
-    position: absolute;
-    left: 6px;
-    bottom: 6px;
-    z-index: 3;
+    position: static;
     width: 28px;
     height: 28px;
     padding: 0;
@@ -284,6 +292,7 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    flex-shrink: 0;
     box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
     transition: background 0.15s ease, opacity 0.15s ease;
   }
@@ -298,10 +307,6 @@
     cursor: default;
     transform: none;
     box-shadow: none;
-  }
-  .no-image-mode .dec-btn {
-    bottom: 4px;
-    left: 6px;
   }
 
   /* Swipe hint (only visible while swiping) */
@@ -523,9 +528,11 @@
         <div class="swipe-bg"><span class="minus">-1</span></div>
         <div class="item-content">
           ${hasImage ? `<img src="${item.image}" alt="${item.name}">` : `<div class=\"no-image\" data-scale-adjust=\"${textScaleFactor}\" data-scale-level=\"${textScaleParam}\" data-color=\"${item.color || 'black'}\"><span class=\"no-image-text\">${item.name}</span></div>`}
-          ${counts[item.name] > 0 ? `<div class=\"count\">${counts[item.name]}</div>` : ""}
+          <div class="count-row">
+            <button type="button" class="dec-btn" aria-label="Decrease ${item.name}" title="Decrease by 1" ${counts[item.name] > 0 ? "" : "disabled"}>▼</button>
+            ${counts[item.name] > 0 ? `<div class=\"count\">${counts[item.name]}</div>` : ""}
+          </div>
           <div class="label">${item.name}</div>
-          <button type="button" class="dec-btn" aria-label="Decrease ${item.name}" title="Decrease by 1" ${counts[item.name] > 0 ? "" : "disabled"}>▼</button>
         </div>
       `;
       div.dataset.itemName = item.name;
@@ -971,11 +978,12 @@
             // Update existing count badge
             existingCount.textContent = currentCount;
           } else {
-            // Create new count badge
+            // Create new count badge to the right of the arrow
             const countBadge = document.createElement('div');
             countBadge.className = 'count';
             countBadge.textContent = currentCount;
-            itemDiv.querySelector('.item-content').appendChild(countBadge);
+            const countRow = itemDiv.querySelector('.count-row');
+            (countRow || itemDiv.querySelector('.item-content')).appendChild(countBadge);
           }
         } else if (existingCount) {
           // Remove count badge if count is 0
