@@ -383,7 +383,7 @@
 
   async function init() {
     try {
-      const url = `config.json?ts=${Date.now()}`;
+      const url = `/api/config?ts=${Date.now()}`;
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
@@ -395,8 +395,8 @@
       }
       hideError();
     } catch (err) {
-      console.error("Failed to load config.json", err);
-      showError("Failed to load config.json. If running locally, start the server: npm start (or ./launch.sh)");
+      console.error("Failed to load menu config", err);
+      showError("Failed to load menu config. If running locally, start the server: npm start (or ./launch.sh)");
       configData = { defaultMenu: "Menu A", menus: { "Menu A": [] } };
     }
     const menuNames = Object.keys(configData.menus || {});
