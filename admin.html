@@ -17,6 +17,7 @@
     --ok-bg: #dcfce7;
     --err: #991b1b;
     --err-bg: #fee2e2;
+    --danger: #b91c1c;
   }
   * { box-sizing: border-box; }
   body {
@@ -49,7 +50,7 @@
     flex-wrap: wrap;
   }
   main {
-    max-width: 720px;
+    max-width: 760px;
     margin: 0 auto;
     padding: 20px 16px 80px;
   }
@@ -75,7 +76,7 @@
   }
   .row {
     display: grid;
-    grid-template-columns: 1fr 110px;
+    grid-template-columns: 72px 1fr 110px auto;
     gap: 12px;
     align-items: start;
     background: var(--card);
@@ -83,6 +84,49 @@
     border-radius: 12px;
     padding: 12px 14px;
     margin-bottom: 8px;
+  }
+  .thumb-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
+  }
+  .thumb {
+    width: 72px;
+    height: 72px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: #f9fafb;
+    object-fit: cover;
+    display: block;
+  }
+  .thumb.placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 11px;
+    text-align: center;
+    padding: 4px;
+  }
+  .file-btn {
+    position: relative;
+    overflow: hidden;
+    display: inline-block;
+    text-align: center;
+    font-size: 12px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: #f3f4f6;
+    border: 1px solid var(--line);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .file-btn input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
   }
   .row .meta {
     font-size: 12px;
@@ -134,6 +178,18 @@
     color: var(--ink);
     border: 1px solid var(--line);
   }
+  .btn-danger {
+    background: #fee2e2;
+    color: var(--danger);
+    border: 1px solid #fecaca;
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
+  .toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin: 12px 0 4px;
+  }
   .status {
     margin-bottom: 14px;
     padding: 10px 12px;
@@ -161,9 +217,13 @@
     color: var(--muted);
     margin: 0 0 16px;
   }
-  @media (max-width: 520px) {
+  @media (max-width: 640px) {
     .row {
-      grid-template-columns: 1fr;
+      grid-template-columns: 72px 1fr;
+    }
+    .row .price-col,
+    .row .remove-col {
+      grid-column: 2;
     }
   }
 </style>
@@ -180,9 +240,12 @@
   </header>
 
   <main>
-    <p class="hint">Edit product names and prices per menu, then save. The calculator picks up changes on refresh. A backup of config.json is kept automatically.</p>
+    <p class="hint">Edit, add, or remove menu items. Large images are resized automatically (max 1200px). Save to write config.json; refresh the calculator afterward.</p>
     <div id="status" class="status"></div>
     <div class="menu-tabs" id="menuTabs"></div>
+    <div class="toolbar">
+      <button type="button" class="btn-secondary" id="addBtn">+ Add item</button>
+    </div>
     <div id="itemList"></div>
   </main>
 
@@ -193,6 +256,7 @@
 
   const statusEl = document.getElementById("status");
   const saveBtn = document.getElementById("saveBtn");
+  const addBtn = document.getElementById("addBtn");
 
   async function init() {
     try {
@@ -236,13 +300,17 @@
     list.innerHTML = "";
     const items = (configData.menus && configData.menus[currentMenu]) || [];
     if (!items.length) {
-      list.innerHTML = '<div class="empty">No items in this menu.</div>';
+      list.innerHTML = '<div class="empty">No items in this menu. Click “Add item” to create one.</div>';
       return;
     }
     items.forEach((item, index) => {
       const row = document.createElement("div");
       row.className = "row";
       row.innerHTML = `
+        <div class="thumb-wrap">
+          <div class="thumb-slot"></div>
+          <label class="file-btn">Image<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" data-index="${index}"></label>
+        </div>
         <div>
           <label class="field-label">
             Name
@@ -250,20 +318,46 @@
           </label>
           <div class="meta"></div>
         </div>
-        <label class="field-label">
+        <label class="field-label price-col">
           Price ($)
           <input type="number" min="0" step="0.01" inputmode="decimal" data-field="price" data-index="${index}">
         </label>
+        <div class="remove-col">
+          <button type="button" class="btn-danger" data-remove="${index}">Remove</button>
+        </div>
       `;
+
+      const thumbSlot = row.querySelector(".thumb-slot");
+      if (item.image) {
+        const img = document.createElement("img");
+        img.className = "thumb";
+        img.alt = "";
+        img.src = `${item.image}?ts=${Date.now()}`;
+        thumbSlot.appendChild(img);
+      } else {
+        const placeholder = document.createElement("div");
+        placeholder.className = "thumb placeholder";
+        placeholder.textContent = "No image";
+        thumbSlot.appendChild(placeholder);
+      }
+
       const meta = [];
       if (item.image) meta.push(item.image.replace(/^images\//, ""));
       row.querySelector(".meta").textContent = meta.join(" · ");
+
       const nameInput = row.querySelector('input[data-field="name"]');
       const priceInput = row.querySelector('input[data-field="price"]');
       nameInput.value = item.name;
       priceInput.value = Number(item.price).toFixed(2);
       nameInput.addEventListener("input", () => setDirty(true));
       priceInput.addEventListener("input", () => setDirty(true));
+
+      row.querySelector('input[type="file"]').addEventListener("change", (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file) uploadImageForItem(index, file);
+      });
+
+      row.querySelector("[data-remove]").addEventListener("click", () => removeItem(index));
       list.appendChild(row);
     });
   }
@@ -281,6 +375,79 @@
         items[index].price = Number.isFinite(value) ? value : items[index].price;
       }
     });
+  }
+
+  function uniqueNewName(items) {
+    const names = new Set(items.map((i) => String(i.name || "").trim()));
+    let n = 1;
+    let candidate = "New item";
+    while (names.has(candidate)) {
+      n += 1;
+      candidate = `New item ${n}`;
+    }
+    return candidate;
+  }
+
+  function addItem() {
+    if (!configData || !currentMenu) return;
+    flushItemsFromDom();
+    const items = configData.menus[currentMenu] || (configData.menus[currentMenu] = []);
+    items.push({
+      name: uniqueNewName(items),
+      price: 0,
+      scale: 8,
+    });
+    setDirty(true);
+    clearStatus();
+    renderItems();
+    const inputs = document.querySelectorAll('#itemList input[data-field="name"]');
+    const last = inputs[inputs.length - 1];
+    if (last) {
+      last.focus();
+      last.select();
+    }
+  }
+
+  function removeItem(index) {
+    flushItemsFromDom();
+    const items = configData.menus[currentMenu] || [];
+    const item = items[index];
+    if (!item) return;
+    const label = String(item.name || "").trim() || "this item";
+    if (!confirm(`Remove “${label}” from ${currentMenu}?`)) return;
+    items.splice(index, 1);
+    setDirty(true);
+    clearStatus();
+    renderItems();
+  }
+
+  async function uploadImageForItem(index, file) {
+    flushItemsFromDom();
+    const items = configData.menus[currentMenu] || [];
+    if (!items[index]) return;
+    showStatus(`Uploading “${file.name}”…`, "ok");
+    try {
+      const body = new FormData();
+      body.append("image", file);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        credentials: "include",
+        body,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      items[index].image = data.path;
+      setDirty(true);
+      renderItems();
+      const note = data.resized
+        ? `Image saved and resized from ${data.originalWidth}×${data.originalHeight} to ${data.width}×${data.height}. Click Save changes.`
+        : `Image saved (${data.width}×${data.height}). Click Save changes.`;
+      showStatus(note, "ok");
+    } catch (err) {
+      console.error(err);
+      showStatus(err.message || "Image upload failed", "err");
+      renderItems();
+    }
   }
 
   function validateBeforeSave() {
@@ -313,6 +480,8 @@
     statusEl.className = "status";
   }
 
+  addBtn.addEventListener("click", addItem);
+
   saveBtn.addEventListener("click", async () => {
     const validationError = validateBeforeSave();
     if (validationError) {
@@ -336,7 +505,7 @@
       renderTabs();
       renderItems();
       setDirty(false);
-      showStatus("Saved. Refresh the calculator to use the new names and prices.", "ok");
+      showStatus("Saved. Refresh the calculator to see menu changes.", "ok");
     } catch (err) {
       console.error(err);
       setDirty(true);
