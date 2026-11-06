@@ -3,3 +3,6 @@ backups/
 .env
 .DS_Store
 .venv/
+dist/
+.wrangler/
+.dev.vars

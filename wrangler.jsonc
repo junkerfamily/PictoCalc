@@ -1,0 +1,10 @@
+{
+  // Cloudflare Pages project: public files in dist/ (built by build.sh), server bits in functions/.
+  // Deploy:  ./build.sh && npx wrangler pages deploy
+  "name": "pictocalc",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-10-01",
+  "kv_namespaces": [
+    { "binding": "PICTO", "id": "68f4b65986a24e5e9cbff7d08c7385cf" }
+  ]
+}

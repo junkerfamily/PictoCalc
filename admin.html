@@ -484,6 +484,28 @@
     renderItems();
   }
 
+  // Shrink pictures to 1200px on the longest side before upload.
+  // PNG/GIF/WebP keep transparency as PNG; everything else becomes JPEG.
+  async function shrinkImage(file) {
+    const MAX = 1200;
+    let bmp;
+    try { bmp = await createImageBitmap(file, { imageOrientation: "from-image" }); }
+    catch { return { file, resized: false }; }
+    const ow = bmp.width, oh = bmp.height;
+    const scale = Math.min(1, MAX / Math.max(ow, oh));
+    if (scale === 1) { bmp.close(); return { file, resized: false, width: ow, height: oh, originalWidth: ow, originalHeight: oh }; }
+    const w = Math.round(ow * scale), h = Math.round(oh * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    canvas.getContext("2d").drawImage(bmp, 0, 0, w, h);
+    bmp.close();
+    const keepAlpha = /png|gif|webp/i.test(file.type);
+    const type = keepAlpha ? "image/png" : "image/jpeg";
+    const blob = await new Promise((r) => canvas.toBlob(r, type, 0.82));
+    const name = file.name.replace(/\.[^.]+$/, "") + (keepAlpha ? ".png" : ".jpg");
+    return { file: new File([blob], name, { type }), resized: true, width: w, height: h, originalWidth: ow, originalHeight: oh };
+  }
+
   async function uploadImageForItem(index, file) {
     flushItemsFromDom();
     const items = configData.menus[currentMenu] || [];
@@ -491,7 +513,10 @@
     showStatus(`Uploading “${file.name}”…`, "ok");
     try {
       const body = new FormData();
-      body.append("image", file);
+      const shrunk = await shrinkImage(file);
+      body.append("image", shrunk.file, shrunk.file.name);
+      for (const k of ["width", "height", "originalWidth", "originalHeight"]) body.append(k, String(shrunk[k] || ""));
+      body.append("resized", shrunk.resized ? "1" : "0");
       const res = await fetch("/api/upload", {
         method: "POST",
         credentials: "include",
